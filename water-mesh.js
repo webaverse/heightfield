@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import metaversefile from 'metaversefile';
 import {bufferSize, WORLD_BASE_HEIGHT, MIN_WORLD_HEIGHT, MAX_WORLD_HEIGHT} from './constants.js';
+import loadWaterMaterial from './water-material.js';
 
 const {useProcGenManager, useGeometryBuffering} = metaversefile;
 const {BufferedMesh, GeometryAllocator} = useGeometryBuffering();
@@ -45,9 +46,15 @@ export class WaterMesh extends BufferedMesh {
     );
 
     const {geometry} = allocator;
-    const material = new THREE.MeshNormalMaterial();
 
-    super(geometry, material);
+    // loading the material
+    (async () => {
+      const material = await loadWaterMaterial();
+      this.material = material;
+    })();
+    
+    // const material = new THREE.MeshNormalMaterial();
+    super(geometry);
 
     this.instance = instance;
     this.gpuTaskManager = gpuTaskManager;
@@ -55,6 +62,31 @@ export class WaterMesh extends BufferedMesh {
     this.allocator = allocator;
     this.gpuTasks = new Map();
     this.geometryBindings = new Map();
+
+
+    //
+    this.time = 0.0;
+    this.sunDirection = new THREE.Vector3(0, -1, 0);
+    this.eye = new THREE.Vector3(0, 0, 0);
+    //
+    this.mirrorWorldPosition = new THREE.Vector3();
+    this.mirrorPlane = new THREE.Plane();
+    this.normal = new THREE.Vector3();
+    this.mirrorWorldPosition = new THREE.Vector3();
+    this.cameraWorldPosition = new THREE.Vector3();
+    this.rotationMatrix = new THREE.Matrix4();
+    this.lookAtPosition = new THREE.Vector3(0, 0, -1);
+    this.clipPlane = new THREE.Vector4();
+
+    this.view = new THREE.Vector3();
+    this.target = new THREE.Vector3();
+    this.q = new THREE.Vector4();
+
+    this.textureMatrix = new THREE.Matrix4();
+
+    this.mirrorCamera = new THREE.PerspectiveCamera();
+
+    this.renderTarget = new THREE.WebGLRenderTarget(512, 512);
   }
   addChunk(chunk, chunkResult) {
     const key = procGenManager.getNodeHash(chunk);
@@ -204,6 +236,145 @@ export class WaterMesh extends BufferedMesh {
       const task = this.gpuTasks.get(key);
       task.cancel();
       this.gpuTasks.delete(key);
+    }
+  }
+
+  update() {
+    this.time += 0.01;
+
+    this.material.uniforms['time'].value = this.time;
+    this.material.uniforms['mirrorSampler'].value = this.renderTarget.texture;
+    this.material.uniforms['textureMatrix'].value = this.textureMatrix;
+  }
+
+  onBeforeRender(renderer, scene, camera) {
+    this.mirrorWorldPosition.setFromMatrixPosition(this.matrixWorld);
+    this.cameraWorldPosition.setFromMatrixPosition(camera.matrixWorld);
+
+    this.rotationMatrix.extractRotation(this.matrixWorld);
+
+    this.normal.set(0, 0, 1);
+    this.normal.applyMatrix4(this.rotationMatrix);
+
+    this.view.subVectors(this.mirrorWorldPosition, this.cameraWorldPosition);
+
+    // Avoid rendering when mirror is facing away
+
+    if (this.view.dot(this.normal) > 0) return;
+
+    this.view.reflect(this.normal).negate();
+    this.view.add(this.mirrorWorldPosition);
+
+    this.rotationMatrix.extractRotation(camera.matrixWorld);
+
+    this.lookAtPosition.set(0, 0, -1);
+    this.lookAtPosition.applyMatrix4(this.rotationMatrix);
+    this.lookAtPosition.add(this.cameraWorldPosition);
+
+    this.target.subVectors(this.mirrorWorldPosition, this.lookAtPosition);
+    this.target.reflect(this.normal).negate();
+    this.target.add(this.mirrorWorldPosition);
+
+    this.mirrorCamera.position.copy(this.view);
+    this.mirrorCamera.up.set(0, 1, 0);
+    this.mirrorCamera.up.applyMatrix4(this.rotationMatrix);
+    this.mirrorCamera.up.reflect(this.normal);
+    this.mirrorCamera.lookAt(this.target);
+
+    this.mirrorCamera.far = camera.far; // Used in WebGLBackground
+
+    this.mirrorCamera.updateMatrixWorld();
+    this.mirrorCamera.projectionMatrix.copy(camera.projectionMatrix);
+
+    // Update the texture matrix
+    this.textureMatrix.set(
+      0.5,
+      0.0,
+      0.0,
+      0.5,
+      0.0,
+      0.5,
+      0.0,
+      0.5,
+      0.0,
+      0.0,
+      0.5,
+      0.5,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    );
+    this.textureMatrix.multiply(this.mirrorCamera.projectionMatrix);
+    this.textureMatrix.multiply(this.mirrorCamera.matrixWorldInverse);
+
+    // Now update projection matrix with new clip plane, implementing code from: http://www.terathon.com/code/oblique.html
+    // Paper explaining this technique: http://www.terathon.com/lengyel/Lengyel-Oblique.pdf
+    this.mirrorPlane.setFromNormalAndCoplanarPoint(this.normal, this.mirrorWorldPosition);
+    this.mirrorPlane.applyMatrix4(this.mirrorCamera.matrixWorldInverse);
+
+    this.clipPlane.set(
+      this.mirrorPlane.normal.x,
+      this.mirrorPlane.normal.y,
+      this.mirrorPlane.normal.z,
+      this.mirrorPlane.constant
+    );
+
+    const projectionMatrix = this.mirrorCamera.projectionMatrix;
+
+    this.q.x =
+      (Math.sign(this.clipPlane.x) + projectionMatrix.elements[8]) /
+      projectionMatrix.elements[0];
+    this.q.y =
+      (Math.sign(this.clipPlane.y) + projectionMatrix.elements[9]) /
+      projectionMatrix.elements[5];
+    this.q.z = -1.0;
+    this.q.w = (1.0 + projectionMatrix.elements[10]) / projectionMatrix.elements[14];
+
+    // Calculate the scaled plane vector
+    this.clipPlane.multiplyScalar(2.0 / this.clipPlane.dot(this.q));
+
+    // Replacing the third row of the projection matrix
+    const clipBias = 0.0;
+    projectionMatrix.elements[2] = this.clipPlane.x;
+    projectionMatrix.elements[6] = this.clipPlane.y;
+    projectionMatrix.elements[10] = this.clipPlane.z + 1.0 - clipBias;
+    projectionMatrix.elements[14] = this.clipPlane.w;
+
+    this.eye.setFromMatrixPosition(camera.matrixWorld);
+
+    // Render
+
+    const currentRenderTarget = renderer.getRenderTarget();
+
+    const currentXrEnabled = renderer.xr.enabled;
+    const currentShadowAutoUpdate = renderer.shadowMap.autoUpdate;
+
+    this.visible = false;
+
+    renderer.xr.enabled = false; // Avoid camera modification and recursion
+    renderer.shadowMap.autoUpdate = false; // Avoid re-computing shadows
+
+    renderer.setRenderTarget(this.renderTarget);
+
+    renderer.state.buffers.depth.setMask(true); // make sure the depth buffer is writable so it can be properly cleared, see #18897
+
+    if (renderer.autoClear === false) renderer.clear();
+    renderer.render(scene, this.mirrorCamera);
+
+    this.visible = true;
+
+    renderer.xr.enabled = currentXrEnabled;
+    renderer.shadowMap.autoUpdate = currentShadowAutoUpdate;
+
+    renderer.setRenderTarget(currentRenderTarget);
+
+    // Restore viewport
+
+    const viewport = camera.viewport;
+
+    if (viewport !== undefined) {
+      renderer.state.viewport(viewport);
     }
   }
 }

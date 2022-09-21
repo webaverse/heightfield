@@ -192,6 +192,8 @@ export default e => {
 
     // frame handling
     frameCb = () => {
+      waterMesh.update();
+
       const _updateLodTracker = () => {
         const localPlayer = useLocalPlayer();
 
