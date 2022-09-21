@@ -241,6 +241,7 @@ export class WaterMesh extends BufferedMesh {
 
   update() {
     this.time += 0.01;
+    if(this.time < 3) return ;
 
     this.material.uniforms['time'].value = this.time;
     this.material.uniforms['mirrorSampler'].value = this.renderTarget.texture;
