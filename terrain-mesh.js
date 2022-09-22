@@ -7,6 +7,8 @@ import {
   MIN_WORLD_HEIGHT,
   MAX_WORLD_HEIGHT,
 } from './constants.js';
+import loadTerrainMaterial from './terrain-material.js';
+
 const {useProcGenManager, useGeometryBuffering} = metaversefile;
 const {BufferedMesh, GeometryAllocator} = useGeometryBuffering();
 const procGenManager = useProcGenManager();
@@ -86,12 +88,12 @@ export class TerrainMesh extends BufferedMesh {
     super(geometry);
 
     // loading the material
-    // (async () => {
-    //   const material = await loadTerrainMaterial();
-    //   this.material = material;
-    // })();
+    (async () => {
+      const material = await loadTerrainMaterial();
+      this.material = material;
+    })();
 
-    this.material = new THREE.MeshNormalMaterial();
+    // this.material = new THREE.MeshNormalMaterial();
 
     this.physics = physics;
 

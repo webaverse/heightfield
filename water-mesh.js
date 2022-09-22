@@ -1,11 +1,17 @@
 import * as THREE from 'three';
 import metaversefile from 'metaversefile';
-import {bufferSize, WORLD_BASE_HEIGHT, MIN_WORLD_HEIGHT, MAX_WORLD_HEIGHT} from './constants.js';
+import {
+  bufferSize,
+  WORLD_BASE_HEIGHT,
+  MIN_WORLD_HEIGHT,
+  MAX_WORLD_HEIGHT,
+} from './constants.js';
 import loadWaterMaterial from './water-material.js';
 
-const {useProcGenManager, useGeometryBuffering} = metaversefile;
+const {useProcGenManager, useGeometryBuffering, useLightsManager} = metaversefile;
 const {BufferedMesh, GeometryAllocator} = useGeometryBuffering();
 const procGenManager = useProcGenManager();
+const lightsManager = useLightsManager();
 
 //
 
@@ -16,10 +22,7 @@ const localBox = new THREE.Box3();
 //
 
 export class WaterMesh extends BufferedMesh {
-  constructor({
-    instance,
-    gpuTaskManager,
-  }) {
+  constructor({instance, gpuTaskManager}) {
     const allocator = new GeometryAllocator(
       [
         {
@@ -52,7 +55,7 @@ export class WaterMesh extends BufferedMesh {
       const material = await loadWaterMaterial();
       this.material = material;
     })();
-    
+
     // const material = new THREE.MeshNormalMaterial();
     super(geometry);
 
@@ -63,12 +66,13 @@ export class WaterMesh extends BufferedMesh {
     this.gpuTasks = new Map();
     this.geometryBindings = new Map();
 
-
     //
     this.time = 0.0;
-    this.sunDirection = new THREE.Vector3(0, -1, 0);
     this.eye = new THREE.Vector3(0, 0, 0);
-    //
+    this.sunTracker = lightsManager.lightTrackers.filter(
+      (tracker) => tracker.children[0].type === 'DirectionalLight'
+    )?.[0];
+
     this.mirrorWorldPosition = new THREE.Vector3();
     this.mirrorPlane = new THREE.Plane();
     this.normal = new THREE.Vector3();
@@ -77,15 +81,9 @@ export class WaterMesh extends BufferedMesh {
     this.rotationMatrix = new THREE.Matrix4();
     this.lookAtPosition = new THREE.Vector3(0, 0, -1);
     this.clipPlane = new THREE.Vector4();
-
     this.view = new THREE.Vector3();
-    this.target = new THREE.Vector3();
-    this.q = new THREE.Vector4();
-
     this.textureMatrix = new THREE.Matrix4();
-
     this.mirrorCamera = new THREE.PerspectiveCamera();
-
     this.renderTarget = new THREE.WebGLRenderTarget(512, 512);
   }
   addChunk(chunk, chunkResult) {
@@ -139,7 +137,7 @@ export class WaterMesh extends BufferedMesh {
         );
         geometry.index.update(indexOffset, waterGeometry.indices.length);
       };
-      const _handleWaterMesh = waterGeometry => {
+      const _handleWaterMesh = (waterGeometry) => {
         const {chunkSize} = this.instance;
 
         const boundingBox = localBox.set(
@@ -173,7 +171,7 @@ export class WaterMesh extends BufferedMesh {
         const geometryBinding = this.allocator.alloc(
           waterGeometry.positions.length,
           waterGeometry.indices.length,
-          boundingBox,
+          boundingBox
           // min,
           // max,
           // this.appMatrix,
@@ -241,11 +239,13 @@ export class WaterMesh extends BufferedMesh {
 
   update() {
     this.time += 0.01;
-    if(this.time < 3) return ;
+    if (this.time < 3) return;
 
-    this.material.uniforms['time'].value = this.time;
-    this.material.uniforms['mirrorSampler'].value = this.renderTarget.texture;
+    // this.material.uniforms['mirrorSampler'].value = this.renderTarget.texture;
     this.material.uniforms['textureMatrix'].value = this.textureMatrix;
+    this.material.uniforms['time'].value = this.time;
+    // this.material.uniforms['sunDirection'].value = this.sunTracker.position.normalize();
+    this.material.uniforms['eye'].value = this.eye;
   }
 
   onBeforeRender(renderer, scene, camera) {
@@ -272,15 +272,16 @@ export class WaterMesh extends BufferedMesh {
     this.lookAtPosition.applyMatrix4(this.rotationMatrix);
     this.lookAtPosition.add(this.cameraWorldPosition);
 
-    this.target.subVectors(this.mirrorWorldPosition, this.lookAtPosition);
-    this.target.reflect(this.normal).negate();
-    this.target.add(this.mirrorWorldPosition);
+    const target = new THREE.Vector3();
+    target.subVectors(this.mirrorWorldPosition, this.lookAtPosition);
+    target.reflect(this.normal).negate();
+    target.add(this.mirrorWorldPosition);
 
     this.mirrorCamera.position.copy(this.view);
     this.mirrorCamera.up.set(0, 1, 0);
     this.mirrorCamera.up.applyMatrix4(this.rotationMatrix);
     this.mirrorCamera.up.reflect(this.normal);
-    this.mirrorCamera.lookAt(this.target);
+    this.mirrorCamera.lookAt(target);
 
     this.mirrorCamera.far = camera.far; // Used in WebGLBackground
 
@@ -323,17 +324,18 @@ export class WaterMesh extends BufferedMesh {
 
     const projectionMatrix = this.mirrorCamera.projectionMatrix;
 
-    this.q.x =
+    const q = new THREE.Vector4();
+    q.x =
       (Math.sign(this.clipPlane.x) + projectionMatrix.elements[8]) /
       projectionMatrix.elements[0];
-    this.q.y =
+    q.y =
       (Math.sign(this.clipPlane.y) + projectionMatrix.elements[9]) /
       projectionMatrix.elements[5];
-    this.q.z = -1.0;
-    this.q.w = (1.0 + projectionMatrix.elements[10]) / projectionMatrix.elements[14];
+    q.z = -1.0;
+    q.w = (1.0 + projectionMatrix.elements[10]) / projectionMatrix.elements[14];
 
     // Calculate the scaled plane vector
-    this.clipPlane.multiplyScalar(2.0 / this.clipPlane.dot(this.q));
+    this.clipPlane.multiplyScalar(2.0 / this.clipPlane.dot(q));
 
     // Replacing the third row of the projection matrix
     const clipBias = 0.0;
@@ -346,10 +348,9 @@ export class WaterMesh extends BufferedMesh {
 
     // Render
 
-    const currentRenderTarget = renderer.getRenderTarget();
-
-    const currentXrEnabled = renderer.xr.enabled;
-    const currentShadowAutoUpdate = renderer.shadowMap.autoUpdate;
+    const oldRenderTarget = renderer.getRenderTarget();
+    const oldXrEnabled = renderer.xr.enabled;
+    const oldShadowAutoUpdate = renderer.shadowMap.autoUpdate;
 
     this.visible = false;
 
@@ -357,18 +358,16 @@ export class WaterMesh extends BufferedMesh {
     renderer.shadowMap.autoUpdate = false; // Avoid re-computing shadows
 
     renderer.setRenderTarget(this.renderTarget);
-
     renderer.state.buffers.depth.setMask(true); // make sure the depth buffer is writable so it can be properly cleared, see #18897
+    renderer.clear();
 
-    if (renderer.autoClear === false) renderer.clear();
     renderer.render(scene, this.mirrorCamera);
 
     this.visible = true;
 
-    renderer.xr.enabled = currentXrEnabled;
-    renderer.shadowMap.autoUpdate = currentShadowAutoUpdate;
-
-    renderer.setRenderTarget(currentRenderTarget);
+    renderer.xr.enabled = oldXrEnabled;
+    renderer.shadowMap.autoUpdate = oldShadowAutoUpdate;
+    renderer.setRenderTarget(oldRenderTarget);
 
     // Restore viewport
 

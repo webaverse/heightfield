@@ -22,15 +22,15 @@ const loadWaterMaterial = async () => {
       {
         normalSampler: {value: normalSampler},
         mirrorSampler: {value: null},
-        alpha: {value: 1.0},
+        alpha: {value: 0.8},
         time: {value: 0.0},
-        size: {value: 5}, //0.1 - 10
-        distortionScale: {value: 3.0},
+        size: {value: 8.0}, //0.1 - 10
+        distortionScale: {value: 4.7}, //0 - 8
         textureMatrix: {value: new THREE.Matrix4()},
         sunColor: {value: new THREE.Color(0xffffff)},
-        sunDirection: {value: new THREE.Vector3(0, -1, 0)},
+        sunDirection: {value: new THREE.Vector3(0.70707, 0.70707, 0)},
         eye: {value: new THREE.Vector3()},
-        waterColor: {value: new THREE.Color(0x253b56)},
+        waterColor: {value: new THREE.Color(0x26455f)},
       },
     ]),
 
@@ -126,8 +126,7 @@ const loadWaterMaterial = async () => {
         float reflectance = rf0 + ( 1.0 - rf0 ) * pow( ( 1.0 - theta ), 5.0 );
         vec3 scatter = max( 0.0, dot( surfaceNormal, eyeDirection ) ) * waterColor;
         vec3 albedo = mix( ( sunColor * diffuseLight * 0.3 + scatter ) * getShadowMask(), ( vec3( 0.1 ) + reflectionSample * 0.9 + reflectionSample * specularLight ), reflectance);
-        vec3 outgoingLight = albedo;
-        gl_FragColor = vec4( outgoingLight, alpha );
+        gl_FragColor = vec4( albedo, alpha );
   
         #include <tonemapping_fragment>
         #include <fog_fragment>
@@ -138,9 +137,10 @@ const loadWaterMaterial = async () => {
     fragmentShader: waterShader.fragmentShader,
     vertexShader: waterShader.vertexShader,
     uniforms: THREE.UniformsUtils.clone(waterShader.uniforms),
-    lights: true,
+    lights: false,
     side: THREE.DoubleSide,
-    fog: true,
+    fog: false,
+    transparent: true
   });
 
   return material;
