@@ -192,8 +192,7 @@ export default e => {
 
     // frame handling
     frameCb = () => {
-      waterMesh.update();
-
+      
       const _updateLodTracker = () => {
         const localPlayer = useLocalPlayer();
 
@@ -226,6 +225,11 @@ export default e => {
         litterMesh.update();
       };
       _updateLitteMesh();
+
+      const _updateWaterMesh = () => {
+        waterMesh.update();
+      };
+      _updateWaterMesh();
 
       gpuTaskManager.update();
     };
