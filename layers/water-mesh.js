@@ -7,9 +7,13 @@ const {BufferedMesh, GeometryAllocator} = useGeometryBuffering();
 const procGenManager = useProcGenManager();
 
 //
+const fakeMaterial = new THREE.MeshBasicMaterial({
+  color: 0xffffff,
+});
 
 const localVector3D = new THREE.Vector3();
 const localVector3D2 = new THREE.Vector3();
+const localQuaternion = new THREE.Quaternion();
 const localBox = new THREE.Box3();
 
 //
@@ -18,7 +22,10 @@ export class WaterMesh extends BufferedMesh {
   constructor({
     instance,
     gpuTaskManager,
+    physics
   }) {
+    super();
+
     const allocator = new GeometryAllocator(
       [
         {
@@ -47,10 +54,14 @@ export class WaterMesh extends BufferedMesh {
     const {geometry} = allocator;
     const material = new THREE.MeshNormalMaterial();
 
-    super(geometry, material);
+    this.geometry = geometry;
+    this.material = material;
+    this.physics = physics;
 
     this.instance = instance;
     this.gpuTaskManager = gpuTaskManager;
+
+    this.physicsObjectsMap = new Map();
 
     this.allocator = allocator;
     this.gpuTasks = new Map();
@@ -156,33 +167,39 @@ export class WaterMesh extends BufferedMesh {
 
         this.geometryBindings.set(key, geometryBinding);
       };
-      _handleWaterMesh(chunkResult.waterGeometry);
 
-      /* const _handlePhysics = async () => {
-        if (geometryBuffer) {
-          this.matrixWorld.decompose(localVector, localQuaternion, localVector2);
+      const waterGeometry = chunkResult.waterGeometry
+      _handleWaterMesh(waterGeometry);
+
+      const _handlePhysics = async () => {
+        const physicsGeo = new THREE.BufferGeometry();
+        physicsGeo.setAttribute(
+          'position',
+          new THREE.BufferAttribute(waterGeometry.positions, 3)
+        );
+        physicsGeo.setIndex(
+          new THREE.BufferAttribute(waterGeometry.indices, 1)
+        );
+        const physicsMesh = new THREE.Mesh(physicsGeo, fakeMaterial);
+
+        const geometryBuffer = await this.physics.cookGeometryAsync(physicsMesh);
+
+        if (geometryBuffer && geometryBuffer.length !== 0) {
+          this.matrixWorld.decompose(
+            localVector3D,
+            localQuaternion,
+            localVector3D2
+          );
           const physicsObject = this.physics.addCookedGeometry(
             geometryBuffer,
-            localVector,
+            localVector3D,
             localQuaternion,
-            localVector2
+            localVector3D2
           );
-          this.physicsObjects.push(physicsObject);
-          this.physicsObjectToChunkMap.set(physicsObject, chunk);
-
-          const onchunkremove = () => {
-            this.physics.removeGeometry(physicsObject);
-
-            const index = this.physicsObjects.indexOf(physicsObject);
-            this.physicsObjects.splice(index, 1);
-            this.physicsObjectToChunkMap.delete(physicsObject);
-
-            tracker.offChunkRemove(chunk, onchunkremove);
-          };
-          tracker.onChunkRemove(chunk, onchunkremove);
+          this.physicsObjectsMap.set(key, physicsObject);
         }
       };
-      _handlePhysics(); */
+      _handlePhysics();
     });
     this.gpuTasks.set(key, task);
   }
@@ -198,6 +215,14 @@ export class WaterMesh extends BufferedMesh {
         } */
         this.allocator.free(geometryBinding);
         this.geometryBindings.delete(key);
+      }
+    }
+    {
+      const physicsObject = this.physicsObjectsMap.get(key);
+
+      if (physicsObject) {
+        this.physics.removeGeometry(physicsObject);
+        this.physicsObjectsMap.delete(key);
       }
     }
     {

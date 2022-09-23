@@ -114,6 +114,7 @@ export default e => {
     const waterMesh = new WaterMesh({
       instance,
       gpuTaskManager,
+      physics
     });
     waterMesh.frustumCulled = false;
     app.add(waterMesh);
