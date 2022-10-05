@@ -504,7 +504,13 @@ class WaterParticleEffect {
         const brokenAttribute = this.littleSplash.geometry.getAttribute('broken');
         for (let i = 0; i < particleCount; i++) {
           if (brokenAttribute.getX(i) < 1) {
-            brokenAttribute.setX(i, brokenAttribute.getX(i) + 0.015 * this.littleSplash.info.brokenVelocity[i]);
+            if (this.waterSurfaceHeight < this.player.position.y - 0.1) {
+              brokenAttribute.setX(i, brokenAttribute.getX(i) + 0.015 * this.littleSplash.info.brokenVelocity[i]);
+            }
+            else{
+              brokenAttribute.setX(i, brokenAttribute.getX(i) + 0.05);
+            }
+            
             scalesAttribute.setX(i, scalesAttribute.getX(i) + 0.05);
             if (this.currentSpeed > 0.1) {
               positionsAttribute.setXYZ(  
@@ -741,7 +747,7 @@ class WaterParticleEffect {
       this.lastSwimmingHand = this.player.avatarCharacterSfx.currentSwimmingHand; 
     }
     
-    if (hasSwim && this.waterSurfaceHeight < this.player.position.y) {
+    if (hasSwim && this.waterSurfaceHeight < this.player.position.y - 0.1 && this.currentSpeed > 0.1) {
       _handleSwimmingSplash();
     }
     
