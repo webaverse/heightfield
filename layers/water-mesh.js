@@ -381,6 +381,7 @@ export class WaterMesh extends BufferedMesh {
     }
     this.material.uniforms.uTime.value = performance.now() / 1000;
   }
+  
   renderDepthTexture(){
     const localPlayer = useLocalPlayer();
     renderer.setRenderTarget(renderTarget);
@@ -400,7 +401,17 @@ export class WaterMesh extends BufferedMesh {
     }
     this.visible = true;
   }
+  onBeforeRender(renderer, scene, camera) {
+    this.renderDepthTexture();
+  }
   setMaterialDepthTexture() {
+    this.material.uniforms.cameraNear.value = camera.near;
+    this.material.uniforms.cameraFar.value = camera.far;
+    this.material.uniforms.resolution.value.set(
+        window.innerWidth * window.devicePixelRatio,
+        window.innerHeight * window.devicePixelRatio
+    );
+    this.material.uniforms.tDepth.value = renderTarget.texture;
     const geometry = new THREE.BoxGeometry( 1, 1, 1 );
     const material = new THREE.MeshBasicMaterial( {color: 0xff0000} );
     const cube = new THREE.Mesh( geometry, material );
@@ -408,31 +419,15 @@ export class WaterMesh extends BufferedMesh {
 
     const baseUrl = import.meta.url.replace(/(\/)[^\/\\]*$/, '$1');
     const textureLoader = new THREE.TextureLoader();
+    const dudvMap2 = textureLoader.load(`${baseUrl}../water-particle/assets/textures/dudvMap2.png`);
+    dudvMap2.wrapS = dudvMap2.wrapT = THREE.RepeatWrapping;
+    this.material.uniforms.tDudv.value = dudvMap2;
+
     // const foamTexture = textureLoader.load(`${baseUrl}../water-particle/assets/textures/wave2.jpeg`);
     // foamTexture.wrapS = foamTexture.wrapT = THREE.RepeatWrapping;
     // const causticTexture = textureLoader.load(`${baseUrl}../water-particle/assets/textures/caustic2.jpg`);
     // causticTexture.wrapS = causticTexture.wrapT = THREE.RepeatWrapping;
     // this.material.uniforms.foamTexture.value = foamTexture;
     // this.material.uniforms.causticTexture.value = causticTexture;
-    const dudvMap2 = textureLoader.load(`${baseUrl}../water-particle/assets/textures/dudvMap2.png`);
-    dudvMap2.wrapS = dudvMap2.wrapT = THREE.RepeatWrapping;
-    this.material.uniforms.tDudv.value = dudvMap2;
-
-    if (renderSettings.findRenderSettings(scene)) {
-      for (const pass of renderSettings.findRenderSettings(scene).passes) {
-        if (pass.constructor.name === 'WebaverseRenderPass') {
-          pass.onBeforeRender = () => {
-            this.renderDepthTexture(); 
-          };
-          this.material.uniforms.cameraNear.value = camera.near;
-          this.material.uniforms.cameraFar.value = camera.far;
-          this.material.uniforms.resolution.value.set(
-              window.innerWidth * window.devicePixelRatio,
-              window.innerHeight * window.devicePixelRatio
-          );
-          this.material.uniforms.tDepth.value = renderTarget.texture;
-        }
-      }
-    }
   }
 }
