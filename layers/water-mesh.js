@@ -12,8 +12,7 @@ const particleEffect = new WaterParticleEffect();
 const fakeMaterial = new THREE.MeshBasicMaterial({
   color: 0xffffff,
 });
-const renderSettings = useRenderSettings();
-const {renderer, camera, scene, rootScene} = useInternals();
+const {renderer, camera, scene} = useInternals();
 //
 
 const localVector3D = new THREE.Vector3();
