@@ -504,11 +504,11 @@ class WaterParticleEffect {
         const brokenAttribute = this.littleSplash.geometry.getAttribute('broken');
         for (let i = 0; i < particleCount; i++) {
           if (brokenAttribute.getX(i) < 1) {
-            if (this.waterSurfaceHeight < this.player.position.y - 0.1) {
-              brokenAttribute.setX(i, brokenAttribute.getX(i) + 0.015 * this.littleSplash.info.brokenVelocity[i]);
+            if (this.waterSurfaceHeight > this.player.position.y - 0.1 || this.currentSpeed <= 0.1) {
+              brokenAttribute.setX(i, brokenAttribute.getX(i) + 0.05);
             }
             else{
-              brokenAttribute.setX(i, brokenAttribute.getX(i) + 0.05);
+              brokenAttribute.setX(i, brokenAttribute.getX(i) + 0.015 * this.littleSplash.info.brokenVelocity[i]);
             }
             
             scalesAttribute.setX(i, scalesAttribute.getX(i) + 0.05);

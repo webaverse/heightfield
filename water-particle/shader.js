@@ -278,7 +278,7 @@ const swimmingRippleSplashFragment = `\
                 discard;
             }
             else{
-                gl_FragColor = vec4(0.6, 0.6, 0.6, 1.0);
+                gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
             }
             if(vSpeed > 0.1){
                 if(vUv.y < 0.4){
@@ -306,7 +306,7 @@ const swimmingRippleSplashFragment = `\
                 discard;
             }
             else{
-                gl_FragColor = vec4(0.4, 0.4, 0.4, 1.0) * voronoiNoise;
+                gl_FragColor = vec4(0.6, 0.6, 0.6, 1.0) * voronoiNoise;
             }
         }
         vec3 noise2 = texture2D(

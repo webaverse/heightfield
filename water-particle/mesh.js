@@ -17,7 +17,7 @@ const voronoiNoiseTexture = loadTexture(`./assets/textures/voronoiNoise.jpg`);
 const noiseMap = loadTexture(`./assets/textures/noise.jpg`);
 const noiseCircleTexture = loadTexture(`./assets/textures/noiseCircle6.png`, false);
 const rippleTexture2 = loadTexture(`./assets/textures/ripple2.png`);
-const splashTexture2 = loadTexture(`./assets/textures/splash2.png`, false);
+const splashTexture2 = loadTexture(`./assets/textures/Splat3.png`, false);
 const splashTexture3 = loadTexture(`./assets/textures/splash3.png`, false);
 const bubbleTexture2 = loadTexture(`./assets/textures/Bubble2.png`, false);
 
