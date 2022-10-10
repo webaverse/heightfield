@@ -68,7 +68,6 @@ export class WaterMesh extends BufferedMesh {
     );
 
     const {geometry} = allocator;
-    console.log(geometry)
     
     const material = _createWaterMaterial();
 
@@ -556,10 +555,6 @@ export class WaterMesh extends BufferedMesh {
       this.updateParticle(contactWater, localPlayer, currentWaterSurfaceHeight + 0.01)
     }
     this.material.uniforms.uTime.value = performance.now() / 1000;
-    
-    if (this.ssrPass) {
-      this.ssrPass.ssrMaterial.uniforms.uTime.value = performance.now() / 1000;
-    }
   }
   
   
