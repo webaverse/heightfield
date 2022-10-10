@@ -26,18 +26,29 @@ const _createWaterMaterial = () => {
             },
             causticTexture: {
                 value: null
-            }
+            },
+            mirror: {
+                value: null
+            },
+            textureMatrix: {
+                value: null
+            },
+
         },
         vertexShader: `\
             
             ${THREE.ShaderChunk.common}
             ${THREE.ShaderChunk.logdepthbuf_pars_vertex}
-            varying vec2 vUv;
+            uniform mat4 textureMatrix;
+		    varying vec4 vUv;
+            // varying vec2 vUv;
             varying vec3 vPos;
             
             void main() {
-                vUv = uv;
-                vec4 modelPosition = modelMatrix * vec4(position, 1.0);
+                // vUv = uv;
+                vec3 pos = position;
+			    vUv = textureMatrix * vec4( pos, 1.0 );
+                vec4 modelPosition = modelMatrix * vec4(pos, 1.0);
                 vec4 viewPosition = viewMatrix * modelPosition;
                 vec4 projectionPosition = projectionMatrix * viewPosition;
                 vPos = modelPosition.xyz;
@@ -50,7 +61,11 @@ const _createWaterMaterial = () => {
             #include <common>
             #include <packing>
 
-            varying vec2 vUv;
+            uniform mat4 textureMatrix;
+		    varying vec4 vUv;
+            uniform sampler2D mirror;
+
+            // varying vec2 vUv;
             varying vec3 vPos;
 
             uniform float uTime;
@@ -62,7 +77,17 @@ const _createWaterMaterial = () => {
             uniform float cameraFar;
             uniform vec2 resolution;
             
-            
+            float blendOverlay( float base, float blend ) {
+
+                return( base < 0.5 ? ( 2.0 * base * blend ) : ( 1.0 - 2.0 * ( 1.0 - base ) * ( 1.0 - blend ) ) );
+    
+            }
+    
+            vec3 blendOverlay( vec3 base, vec3 blend ) {
+    
+                return vec3( blendOverlay( base.r, blend.r ), blendOverlay( base.g, blend.g ), blendOverlay( base.b, blend.b ) );
+    
+            }
 
             float getDepth(const in vec2 screenPosition) {
                 return unpackRGBAToDepth( texture2D(tDepth, screenPosition));
@@ -86,8 +111,8 @@ const _createWaterMaterial = () => {
                 float depthScale = 20.;
                 float depthFalloff = 3.;
                 float sceneDepth = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, depthScale, depthFalloff);
-                vec4 shoreColor = vec4(0.182, 0.731, 0.760, 1.0);
-                vec4 waterColor = vec4(0.140, 0.294, 0.560, 1.0);
+                vec4 shoreColor = vec4(0.182, 0.731, 0.760, (1. - sceneDepth));
+                vec4 waterColor = vec4(0.140, 0.294, 0.560, (1. - sceneDepth));
                 vec4 col = sceneDepth * shoreColor + (1. - sceneDepth) * waterColor;
 
                 // vec4 causticColor = vec4(0.8, 0.8, 0.8, 1.0);
@@ -109,28 +134,29 @@ const _createWaterMaterial = () => {
 
 
                 // foam line
-                vec4 foamColor = vec4(1.0, 1.0, 1.0, 1.0);
+                vec4 foamColor = vec4(col.rgb, 0.1);
                 float foamDepth = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, 1.0, 1.0);
-                float foamShoreWidth = 0.9;
+                float foamShoreWidth = 0.3;
                 //vec4 foamCutOut = saturate(cutout(foamDepth, foamShoreWidth) + foamT);
                 vec4 foamCutOut = saturate(cutout(foamDepth, foamShoreWidth));
                 vec4 foam = foamCutOut * foamColor;
                 // vec4 col2 = col * ((vec4(1.0) - foamCutOut) + (vec4(1.0) - causticT)) * 0.5 + foam + caustic;
                 vec4 col2 = col * ((vec4(1.0) - foamCutOut)) + foam;
 
-                gl_FragColor = vec4(col2);
-    
+                // gl_FragColor = vec4(col2);
+                vec4 base = texture2DProj( mirror, vUv );
+			    gl_FragColor = vec4( blendOverlay( base.rgb, col2.rgb ), col2.a);
                 // foam
-                float diff = saturate( fragmentLinearEyeDepth - linearEyeDepth );
-                if(diff > 0.){
-                    vec2 channelA = texture2D( tDudv, vec2(0.25 * vPos.x + uTime * 0.04, 0.5 * vPos.z - uTime * 0.03) ).rg;
-                    vec2 channelB = texture2D( tDudv, vec2(0.5 * vPos.x - uTime * 0.05, 0.35 * vPos.z + uTime * 0.04) ).rg;
-                    vec2 displacement = (channelA + channelB) * 0.5;
-                    displacement = ( ( displacement * 2.0 ) - 1.0 ) * 1.0;
-                    diff += displacement.x;
-                    gl_FragColor = mix( vec4(1.0, 1.0, 1.0, gl_FragColor.a), gl_FragColor, step( 0.1, diff ) );
-                }
-                
+                // float diff = saturate( fragmentLinearEyeDepth - linearEyeDepth );
+                // if(diff > 0.){
+                //     vec2 channelA = texture2D( tDudv, vec2(0.25 * vPos.x + uTime * 0.04, 0.5 * vPos.z - uTime * 0.03) ).rg;
+                //     vec2 channelB = texture2D( tDudv, vec2(0.5 * vPos.x - uTime * 0.05, 0.35 * vPos.z + uTime * 0.04) ).rg;
+                //     vec2 displacement = (channelA + channelB) * 0.5;
+                //     displacement = ( ( displacement * 2.0 ) - 1.0 ) * 1.0;
+                //     diff += displacement.x;
+                //     gl_FragColor = mix( vec4(1.0, 1.0, 1.0, gl_FragColor.a), gl_FragColor, step( 0.1, diff ) );
+                // }
+                // #include <encodings_fragment>
                 ${THREE.ShaderChunk.logdepthbuf_fragment}
             }
         `,
