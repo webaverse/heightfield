@@ -8,7 +8,8 @@ const {useProcGenManager, useGeometryBuffering, useLocalPlayer, useInternals} = 
 const {BufferedMesh, GeometryAllocator} = useGeometryBuffering();
 const procGenManager = useProcGenManager();
 
-const particleEffect = new WaterParticleEffect();
+const mirrorInvisibleList = [];
+const particleEffect = new WaterParticleEffect(mirrorInvisibleList);
 const fakeMaterial = new THREE.MeshBasicMaterial({
   color: 0xffffff,
 });
@@ -21,20 +22,6 @@ const localBox = new THREE.Box3();
 const localQuaternion = new THREE.Quaternion();
 const localVector = new THREE.Vector3();
 //
-
-const pixelRatio = renderer.getPixelRatio();
-const renderTarget = new THREE.WebGLRenderTarget(
-  window.innerWidth * pixelRatio,
-  window.innerHeight * pixelRatio
-);
-renderTarget.texture.minFilter = THREE.NearestFilter;
-renderTarget.texture.magFilter = THREE.NearestFilter;
-renderTarget.texture.generateMipmaps = false;
-renderTarget.stencilBuffer = false;
-
-const depthMaterial = new THREE.MeshDepthMaterial();
-depthMaterial.depthPacking = THREE.RGBADepthPacking;
-depthMaterial.blending = THREE.NoBlending;
 
 export class WaterMesh extends BufferedMesh {
   constructor({
@@ -88,7 +75,25 @@ export class WaterMesh extends BufferedMesh {
 
     this.lastSwimmingHand = null;
     this.swimDamping = 1;
-    
+
+
+    // for depth 
+    const pixelRatio = renderer.getPixelRatio();
+    this.depthRenderTarget = new THREE.WebGLRenderTarget(
+      window.innerWidth * pixelRatio,
+      window.innerHeight * pixelRatio
+    );
+    this.depthRenderTarget.texture.minFilter = THREE.NearestFilter;
+    this.depthRenderTarget.texture.magFilter = THREE.NearestFilter;
+    this.depthRenderTarget.texture.generateMipmaps = false;
+    this.depthRenderTarget.stencilBuffer = false;
+
+    this.depthMaterial = new THREE.MeshDepthMaterial();
+    this.depthMaterial.depthPacking = THREE.RGBADepthPacking;
+    this.depthMaterial.blending = THREE.NoBlending;
+
+
+    // for reflection
     this.eye = new THREE.Vector3(0, 0, 0);
     this.reflectorPlane = new THREE.Plane();
     this.normal = new THREE.Vector3();
@@ -113,7 +118,7 @@ export class WaterMesh extends BufferedMesh {
 		};
     this.mirrorRenderTarget = new THREE.WebGLRenderTarget(window.innerWidth * window.devicePixelRatio, window.innerHeight * window.devicePixelRatio, parameters);
     
-    this.setMaterialDepthTexture();
+    this.setMaterialTexture();
   }
   addChunk(chunk, chunkResult) {
     const key = procGenManager.getNodeHash(chunk);
@@ -385,11 +390,11 @@ export class WaterMesh extends BufferedMesh {
     particleEffect.player = localPlayer;
     particleEffect.waterSurfaceHeight = waterSurfaceHeight;
   };
-  renderDepthTexture(renderer, scene, camera){
-    renderer.setRenderTarget(renderTarget);
+  renderDepthTexture(){
+    renderer.setRenderTarget(this.depthRenderTarget);
     renderer.clear();
     this.visible = false;
-    scene.overrideMaterial = depthMaterial;
+    scene.overrideMaterial = this.depthMaterial;
 
     renderer.render(scene, camera);
     renderer.setRenderTarget(null);
@@ -486,7 +491,9 @@ export class WaterMesh extends BufferedMesh {
     // Render
 
     // this.mirrorRenderTarget.texture.encoding = renderer.outputEncoding;
-
+    for (const l of mirrorInvisibleList) {
+      l.visible = false;
+    }
     this.visible = false;
 
     const currentRenderTarget = renderer.getRenderTarget();
@@ -517,13 +524,16 @@ export class WaterMesh extends BufferedMesh {
     }
 
     this.visible = true;
+    for (const l of mirrorInvisibleList) {
+      l.visible = true;
+    }
   }
   onBeforeRender(renderer, scene, camera) {
-    this.renderDepthTexture(renderer, scene, camera);
+    this.renderDepthTexture();
     this.renderMirror(renderer, scene, camera);
   }
   
-  setMaterialDepthTexture() {
+  setMaterialTexture() {
     this.material.uniforms.mirror.value = this.mirrorRenderTarget.texture;
     this.material.uniforms.textureMatrix.value = this.textureMatrix;
     this.material.uniforms.cameraNear.value = camera.near;
@@ -532,7 +542,7 @@ export class WaterMesh extends BufferedMesh {
         window.innerWidth * window.devicePixelRatio,
         window.innerHeight * window.devicePixelRatio
     );
-    this.material.uniforms.tDepth.value = renderTarget.texture;
+    this.material.uniforms.tDepth.value = this.depthRenderTarget.texture;
     const geometry = new THREE.BoxGeometry( 1, 1, 1 );
     const material = new THREE.MeshBasicMaterial( {color: 0xff0000} );
     const cube = new THREE.Mesh( geometry, material );
@@ -552,7 +562,7 @@ export class WaterMesh extends BufferedMesh {
       this.handleSwimAction(contactWater, localPlayer, currentWaterSurfaceHeight);
 
       // handle particle
-      this.updateParticle(contactWater, localPlayer, currentWaterSurfaceHeight + 0.01)
+      // this.updateParticle(contactWater, localPlayer, currentWaterSurfaceHeight + 0.01)
     }
     this.material.uniforms.uTime.value = performance.now() / 1000;
   }
