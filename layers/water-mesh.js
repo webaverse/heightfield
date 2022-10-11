@@ -491,6 +491,10 @@ export class WaterMesh extends BufferedMesh {
     // Render
 
     // this.mirrorRenderTarget.texture.encoding = renderer.outputEncoding;
+    const localPlayer = useLocalPlayer();
+    if (localPlayer.avatar) {
+      localPlayer.avatar.app.visible = false;
+    }
     for (const l of mirrorInvisibleList) {
       l.visible = false;
     }
@@ -527,6 +531,9 @@ export class WaterMesh extends BufferedMesh {
     for (const l of mirrorInvisibleList) {
       l.visible = true;
     }
+    if (localPlayer.avatar) {
+      localPlayer.avatar.app.visible = true;
+    }
   }
   onBeforeRender(renderer, scene, camera) {
     this.renderDepthTexture();
@@ -536,6 +543,7 @@ export class WaterMesh extends BufferedMesh {
   setMaterialTexture() {
     this.material.uniforms.mirror.value = this.mirrorRenderTarget.texture;
     this.material.uniforms.textureMatrix.value = this.textureMatrix;
+    this.material.uniforms.eye.value = this.eye;
     this.material.uniforms.cameraNear.value = camera.near;
     this.material.uniforms.cameraFar.value = camera.far;
     this.material.uniforms.resolution.value.set(
@@ -562,7 +570,7 @@ export class WaterMesh extends BufferedMesh {
       this.handleSwimAction(contactWater, localPlayer, currentWaterSurfaceHeight);
 
       // handle particle
-      // this.updateParticle(contactWater, localPlayer, currentWaterSurfaceHeight + 0.01)
+      this.updateParticle(contactWater, localPlayer, currentWaterSurfaceHeight + 0.01)
     }
     this.material.uniforms.uTime.value = performance.now() / 1000;
   }

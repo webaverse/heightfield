@@ -33,6 +33,9 @@ const _createWaterMaterial = () => {
             textureMatrix: {
                 value: null
             },
+            eye: {
+                value: new THREE.Vector3()
+            },
 
         },
         vertexShader: `\
@@ -44,36 +47,72 @@ const _createWaterMaterial = () => {
 		    varying vec4 vUv;
             // varying vec2 vUv;
             varying vec3 vPos;
+            varying vec3 vNormal;
 
-            vec3 gerstnerWave(float dirX, float dirZ, float steepness, float waveLength, inout vec3 pos) {
-                float waveHeight = 0.25;
+            vec3 gerstnerWave(float dirX, float dirZ, float steepness, float waveLength, inout vec3 tangent, inout vec3 binormal, vec3 pos) {
                 vec2 dirXZ = vec2(dirX, dirZ);
                 float k = 2. * PI / waveLength;
                 float c = sqrt(9.8 / k);
                 vec2 d = normalize(dirXZ);
                 float f = k * (dot(d, pos.xz) - c * uTime);
-                float a = (steepness / k) * waveHeight;
-                pos.x += d.x * (a * cos(f));
-                pos.y += a * sin(f); 
-                pos.z += d.y * (a * cos(f));
-                return pos;
+                float a = (steepness / k);
+                // pos.x += d.x * (a * cos(f));
+                // pos.y += a * sin(f); 
+                // pos.z += d.y * (a * cos(f));
+                tangent += vec3(
+                    - d.x * d.x * (steepness * sin(f)),
+                    d.x * (steepness * cos(f)),
+                    -d.x * d.y * (steepness * sin(f))
+                );
+                binormal += vec3(
+                    -d.x * d.y * (steepness * sin(f)),
+                    d.y * (steepness * cos(f)),
+                    - d.y * d.y * (steepness * sin(f))
+                );
+                return vec3(
+                    d.x * (a * cos(f)),
+                    a * sin(f),
+                    d.y * (a * cos(f))
+                );
             }
             
             void main() {
+                
                 // vUv = uv;
                 vec3 pos = position;
+                vUv = textureMatrix * vec4( pos, 1.0 );
 
                 // 1.dirX  2.dirZ  3.steepness  4.waveLength
-                vec4 waveA = vec4(1.0, 0.0, 0.5, 5.);
-                vec4 waveB = vec4(0.0, 1.0, 0.25, 10.);
-                vec4 waveC = vec4(1.0, 1.0, 0.15, 5.);
+                vec4 waveA = vec4(1.0, 0.0, 0.05, 30.);
+                vec4 waveB = vec4(0.0, 1.0, 0.025, 7.);
+                vec4 waveC = vec4(-1.0, -1.0, 0.015, 3.);
+                vec4 waveD = vec4(-0.5, 0.7, 0.03, 15.);
+
+                vec3 tangent = vec3(1.0, 0.0, 0.0);
+                vec3 binormal = vec3(0.0, 0.0, 1.0);
+
+                vec3 tempPos = position;
 			    
-                pos = gerstnerWave(waveA.x, waveA.y, waveA.z, waveA.w, pos);
-                pos = gerstnerWave(waveB.x, waveB.y, waveB.z, waveB.w, pos);
-                pos = gerstnerWave(waveC.x, waveC.y, waveC.z, waveC.w, pos);
+                pos += gerstnerWave(waveA.x, waveA.y, waveA.z, waveA.w, tangent, binormal, tempPos);
+                pos += gerstnerWave(waveB.x, waveB.y, waveB.z, waveB.w, tangent, binormal, tempPos);
+                pos += gerstnerWave(waveC.x, waveC.y, waveC.z, waveC.w, tangent, binormal, tempPos);
+                pos += gerstnerWave(waveD.x, waveD.y, waveD.z, waveD.w, tangent, binormal, tempPos);
 
 
-                vUv = textureMatrix * vec4( pos, 1.0 );
+                // vec3 tangent = vec3(
+                //     1. - d.x * d.x * (steepness * sin(f)),
+                //     d.x * (steepness * cos(f)),
+                //     -d.x * d.y * (steepness * sin(f))
+                // );
+                // vec3 binormal = vec3(
+                //     -d.x * d.y * (steepness * sin(f)),
+                //     d.y * (steepness * cos(f)),
+                //     1. - d.y * d.y * (steepness * sin(f))
+                // );
+                vec3 waveNormal = normalize(cross(binormal, tangent));
+                vNormal = waveNormal;
+
+                
                 vec4 modelPosition = modelMatrix * vec4(pos, 1.0);
                 vec4 viewPosition = viewMatrix * modelPosition;
                 vec4 projectionPosition = projectionMatrix * viewPosition;
@@ -86,8 +125,15 @@ const _createWaterMaterial = () => {
             ${THREE.ShaderChunk.logdepthbuf_pars_fragment}
             #include <common>
             #include <packing>
+            #include <bsdfs>
+            #include <fog_pars_fragment>
+            #include <logdepthbuf_pars_fragment>
+            #include <lights_pars_begin>
+            #include <shadowmap_pars_fragment>
+            #include <shadowmask_pars_fragment>
 
             uniform mat4 textureMatrix;
+            uniform vec3 eye;
 		    varying vec4 vUv;
             uniform sampler2D mirror;
 
@@ -102,6 +148,8 @@ const _createWaterMaterial = () => {
             uniform float cameraNear;
             uniform float cameraFar;
             uniform vec2 resolution;
+
+            varying vec3 vNormal;
             
             float blendOverlay( float base, float blend ) {
 
@@ -113,6 +161,12 @@ const _createWaterMaterial = () => {
     
                 return vec3( blendOverlay( base.r, blend.r ), blendOverlay( base.g, blend.g ), blendOverlay( base.b, blend.b ) );
     
+            }
+            void sunLight( const vec3 surfaceNormal, const vec3 eyeDirection, float shiny, float spec, float diffuse, inout vec3 diffuseColor, inout vec3 specularColor, vec3 sunColor, vec3 sunDir) {
+                vec3 reflection = normalize( reflect( -sunDir, surfaceNormal ) );
+                float direction = max( 0.0, dot( eyeDirection, reflection ) );
+                specularColor += pow( direction, shiny ) * sunColor * spec;
+                diffuseColor += max( dot(sunDir, surfaceNormal ), 0.0 ) * sunColor * diffuse;
             }
 
             float getDepth(const in vec2 screenPosition) {
@@ -134,12 +188,18 @@ const _createWaterMaterial = () => {
                 float linearEyeDepth = getViewZ(getDepth(screenUV));
 
                 // water and shoreline
-                float depthScale = 13.;
+                float depthScale = 15.;
                 float depthFalloff = 3.;
                 float sceneDepth = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, depthScale, depthFalloff);
-                vec4 shoreColor = vec4(0.182, 0.731, 0.760, (1. - sceneDepth));
-                vec4 waterColor = vec4(0.140, 0.294, 0.560, (1. - sceneDepth));
-                vec4 col = sceneDepth * shoreColor + (1. - sceneDepth) * waterColor;
+                float sceneDepth2 = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, 25., 3.);
+                vec4 shoreColor = vec4(0.346, 0.960, 0.0384, (1. - sceneDepth));
+                shoreColor.rgb *= 0.6;
+                vec4 waterColor = vec4(0.140, 0.294 * 1.8, 0.560, (1. - sceneDepth));
+                waterColor.rgb *= 0.8;
+                // vec4 col = sceneDepth * shoreColor + (1. - sceneDepth) * waterColor;
+                vec4 col = mix(shoreColor, waterColor, 1. - sceneDepth2);
+                col.a = 1. - sceneDepth;
+
 
                 // vec4 causticColor = vec4(0.8, 0.8, 0.8, 1.0);
                 // float causticCutout = 0.4;
@@ -183,6 +243,29 @@ const _createWaterMaterial = () => {
                 //     gl_FragColor = mix( vec4(1.0, 1.0, 1.0, gl_FragColor.a), gl_FragColor, step( 0.1, diff ) );
                 // }
                 // #include <encodings_fragment>
+
+                vec3 sunColor = vec3(0., 0., 0.);
+                vec3 sunDir = vec3(0.70707, 0.70707, 0.);
+
+                vec3 surfaceNormal = normalize( vNormal * vec3( 1.5, 1.0, 1.5 ) );
+                vec3 diffuseLight = vec3(0.0);
+                vec3 specularLight = vec3(0.0);
+                vec3 worldToEye = eye-vPos.xyz;
+                vec3 eyeDirection = normalize( worldToEye );
+                sunLight( surfaceNormal, eyeDirection, 100.0, 2.0, 0.5, diffuseLight, specularLight, sunColor, sunDir);
+                float distance = length(worldToEye);
+                float distortionScale = 3.;
+                vec2 distortion = surfaceNormal.xz * ( 0.001 + 1.0 / distance ) * distortionScale;
+                vec3 reflectionSample = vec3( texture2D( mirror, vUv.xy / vUv.w + distortion ) );
+                float theta = max( dot( eyeDirection, surfaceNormal ), 0.0 );
+                float rf0 = 0.3;
+                float reflectance = rf0 + ( 1.0 - rf0 ) * pow( ( 1.0 - theta ), 5.0 );
+                vec3 scatter = max( 0.0, dot( surfaceNormal, eyeDirection ) ) * col2.rgb;
+                vec3 albedo = mix( ( sunColor * diffuseLight * 0.3 + scatter ) * getShadowMask(), ( vec3( 0.1 ) + reflectionSample * 0.4 + reflectionSample * specularLight ), reflectance);
+                gl_FragColor = vec4( albedo, col2.a );
+                gl_FragColor.rgb += col2.rgb;
+                #include <tonemapping_fragment>
+                #include <fog_fragment>
                 ${THREE.ShaderChunk.logdepthbuf_fragment}
             }
         `,
