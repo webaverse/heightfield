@@ -39,15 +39,41 @@ const _createWaterMaterial = () => {
             
             ${THREE.ShaderChunk.common}
             ${THREE.ShaderChunk.logdepthbuf_pars_vertex}
+            uniform float uTime;
             uniform mat4 textureMatrix;
 		    varying vec4 vUv;
             // varying vec2 vUv;
             varying vec3 vPos;
+
+            vec3 gerstnerWave(float dirX, float dirZ, float steepness, float waveLength, inout vec3 pos) {
+                float waveHeight = 0.25;
+                vec2 dirXZ = vec2(dirX, dirZ);
+                float k = 2. * PI / waveLength;
+                float c = sqrt(9.8 / k);
+                vec2 d = normalize(dirXZ);
+                float f = k * (dot(d, pos.xz) - c * uTime);
+                float a = (steepness / k) * waveHeight;
+                pos.x += d.x * (a * cos(f));
+                pos.y += a * sin(f); 
+                pos.z += d.y * (a * cos(f));
+                return pos;
+            }
             
             void main() {
                 // vUv = uv;
                 vec3 pos = position;
-			    vUv = textureMatrix * vec4( pos, 1.0 );
+
+                // 1.dirX  2.dirZ  3.steepness  4.waveLength
+                vec4 waveA = vec4(1.0, 0.0, 0.5, 5.);
+                vec4 waveB = vec4(0.0, 1.0, 0.25, 10.);
+                vec4 waveC = vec4(1.0, 1.0, 0.15, 5.);
+			    
+                pos = gerstnerWave(waveA.x, waveA.y, waveA.z, waveA.w, pos);
+                pos = gerstnerWave(waveB.x, waveB.y, waveB.z, waveB.w, pos);
+                pos = gerstnerWave(waveC.x, waveC.y, waveC.z, waveC.w, pos);
+
+
+                vUv = textureMatrix * vec4( pos, 1.0 );
                 vec4 modelPosition = modelMatrix * vec4(pos, 1.0);
                 vec4 viewPosition = viewMatrix * modelPosition;
                 vec4 projectionPosition = projectionMatrix * viewPosition;
@@ -108,7 +134,7 @@ const _createWaterMaterial = () => {
                 float linearEyeDepth = getViewZ(getDepth(screenUV));
 
                 // water and shoreline
-                float depthScale = 20.;
+                float depthScale = 13.;
                 float depthFalloff = 3.;
                 float sceneDepth = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, depthScale, depthFalloff);
                 vec4 shoreColor = vec4(0.182, 0.731, 0.760, (1. - sceneDepth));
