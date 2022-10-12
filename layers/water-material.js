@@ -36,6 +36,9 @@ const _createWaterMaterial = () => {
             eye: {
                 value: new THREE.Vector3()
             },
+            playerPos: {
+                value: new THREE.Vector3()
+            },
 
         },
         vertexShader: `\
@@ -134,9 +137,10 @@ const _createWaterMaterial = () => {
 
             uniform mat4 textureMatrix;
             uniform vec3 eye;
+            uniform vec3 playerPos;
 		    varying vec4 vUv;
             uniform sampler2D mirror;
-
+            
             // varying vec2 vUv;
             varying vec3 vPos;
 
@@ -191,13 +195,11 @@ const _createWaterMaterial = () => {
                 float depthScale = 15.;
                 float depthFalloff = 3.;
                 float sceneDepth = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, depthScale, depthFalloff);
-                float sceneDepth2 = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, 25., 3.);
-                vec4 shoreColor = vec4(0.346, 0.960, 0.0384, (1. - sceneDepth));
-                shoreColor.rgb *= 0.6;
-                vec4 waterColor = vec4(0.140, 0.294 * 1.8, 0.560, (1. - sceneDepth));
-                waterColor.rgb *= 0.8;
+                float waterColorDepth = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, 40., 3.);
+                vec4 shoreColor = vec4(0.17992, 0.4992, 0.019968, (1. - sceneDepth));
+                vec4 waterColor = vec4(0.126, 0.47628, 0.6048, (1. - sceneDepth));
                 // vec4 col = sceneDepth * shoreColor + (1. - sceneDepth) * waterColor;
-                vec4 col = mix(shoreColor, waterColor, 1. - sceneDepth2);
+                vec4 col = mix(shoreColor, waterColor, 1. - waterColorDepth);
                 col.a = 1. - sceneDepth;
 
 
@@ -207,27 +209,28 @@ const _createWaterMaterial = () => {
                 // vec4 causticT2 = texture2D(causticTexture, vec2(vPos.z * 0.2 + uTime * 0.1, vPos.x * 0.2 - uTime * 0.05));
                 // causticT = cutout(causticT.r * causticT2.r, causticCutout);
                 // vec4 caustic = causticT * causticColor;
-                
-                // float foamCutout = 0.3;
-                // float foamTDepthScale = 0.9;
-                // float foamTDepthFalloff = 0.5;
-                // float foamAmount = 0.8;
-                // float foamTDepth = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, foamTDepthScale, foamTDepthFalloff);
-                // float foamUvX = foamTDepth * foamAmount - uTime * 0.15;
-                // float foamUvY = vPos.z * 0.05;
-                // vec4 foamT = texture2D(foamTexture, vec2(foamUvX, foamUvY));
-                // foamT = cutout((foamT * foamTDepth).r, foamCutout);
 
+                float fadeoutDistance = 15.;
+                float foamCutout = 0.25;
+                float foamTDepthScale = 2.0;
+                float foamTDepthFalloff = 2.0;
+                float foamAmount = 1.;
+                float foamTDepth = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, foamTDepthScale, foamTDepthFalloff);
+                float foamUvY = vPos.z * 0.05;
+                float foamUvX = foamTDepth * foamAmount + uTime * 0.2;
+                vec4 foamT = texture2D(foamTexture, vec2(foamUvX, foamUvY));
+                foamT = cutout((foamT * foamTDepth).r, foamCutout);
+                foamT *= mix(foamT, vec4(0.), step(distance(playerPos, vPos), fadeoutDistance) * (1. + distance(playerPos, vPos)));
 
                 // foam line
-                vec4 foamColor = vec4(col.rgb, 0.1);
-                float foamDepth = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, 1.0, 1.0);
-                float foamShoreWidth = 0.3;
-                //vec4 foamCutOut = saturate(cutout(foamDepth, foamShoreWidth) + foamT);
-                vec4 foamCutOut = saturate(cutout(foamDepth, foamShoreWidth));
-                vec4 foam = foamCutOut * foamColor;
-                // vec4 col2 = col * ((vec4(1.0) - foamCutOut) + (vec4(1.0) - causticT)) * 0.5 + foam + caustic;
-                vec4 col2 = col * ((vec4(1.0) - foamCutOut)) + foam;
+                vec4 foamColor = waterColor + vec4(0.5, 0.5, 0.5, 0.8);
+                float foamDepth = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, 0.3, 2.0);
+                float foamShoreWidth = 0.1;
+                vec4 foamLineCutOut = saturate(cutout(foamDepth, foamShoreWidth) + foamT);
+                // vec4 foamLineCutOut = saturate(cutout(foamDepth, foamShoreWidth));
+                vec4 foam = foamLineCutOut * mix(foamColor, col, step(distance(playerPos, vPos), fadeoutDistance) * (1. + distance(playerPos, vPos)));
+                // vec4 col2 = col * ((vec4(1.0) - foamLineCutOut) + (vec4(1.0) - causticT)) * 0.5 + foam + caustic;
+                vec4 col2 = col * ((vec4(1.0) - foamLineCutOut)) + foam;
 
                 // gl_FragColor = vec4(col2);
                 vec4 base = texture2DProj( mirror, vUv );

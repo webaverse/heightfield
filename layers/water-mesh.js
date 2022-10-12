@@ -551,6 +551,14 @@ export class WaterMesh extends BufferedMesh {
         window.innerHeight * window.devicePixelRatio
     );
     this.material.uniforms.tDepth.value = this.depthRenderTarget.texture;
+
+    const baseUrl = import.meta.url.replace(/(\/)[^\/\\]*$/, '$1');
+    const textureLoader = new THREE.TextureLoader();
+    const foamTexture = textureLoader.load(`${baseUrl}../water-particle/assets/textures/Trail36.png`);
+    foamTexture.wrapS = foamTexture.wrapT = THREE.RepeatWrapping;
+    this.material.uniforms.foamTexture.value = foamTexture;
+
+    
     const geometry = new THREE.BoxGeometry( 1, 1, 1 );
     const material = new THREE.MeshBasicMaterial( {color: 0xff0000} );
     const cube = new THREE.Mesh( geometry, material );
@@ -573,6 +581,8 @@ export class WaterMesh extends BufferedMesh {
       this.updateParticle(contactWater, localPlayer, currentWaterSurfaceHeight + 0.01)
     }
     this.material.uniforms.uTime.value = performance.now() / 1000;
+    this.material.uniforms.playerPos.value.copy(localPlayer.position);
+    
   }
   
   
