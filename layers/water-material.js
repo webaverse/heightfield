@@ -87,9 +87,9 @@ const _createWaterMaterial = () => {
 
                 // 1.dirX  2.dirZ  3.steepness  4.waveLength
                 vec4 waveA = vec4(1.0, 0.0, 0.05, 30.);
-                vec4 waveB = vec4(0.0, 1.0, 0.025, 7.);
-                vec4 waveC = vec4(-1.0, -1.0, 0.015, 3.);
-                vec4 waveD = vec4(-0.5, 0.7, 0.03, 15.);
+                vec4 waveB = vec4(0.0, 1.0, 0.05, 15.);
+                vec4 waveC = vec4(-0.7, -0.3, 0.075, 7.5);
+                vec4 waveD = vec4(-0.3, -0.7, 0.075, 3.5);
 
                 vec3 tangent = vec3(1.0, 0.0, 0.0);
                 vec3 binormal = vec3(0.0, 0.0, 1.0);
@@ -196,7 +196,7 @@ const _createWaterMaterial = () => {
                 float depthFalloff = 3.;
                 float sceneDepth = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, depthScale, depthFalloff);
                 float waterColorDepth = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, 40., 3.);
-                vec4 shoreColor = vec4(0.17992, 0.4992, 0.019968, (1. - sceneDepth));
+                vec4 shoreColor = vec4(0.17992, 0.4992, 0.09968, (1. - sceneDepth));
                 vec4 waterColor = vec4(0.126, 0.47628, 0.6048, (1. - sceneDepth));
                 // vec4 col = sceneDepth * shoreColor + (1. - sceneDepth) * waterColor;
                 vec4 col = mix(shoreColor, waterColor, 1. - waterColorDepth);
@@ -210,7 +210,7 @@ const _createWaterMaterial = () => {
                 // causticT = cutout(causticT.r * causticT2.r, causticCutout);
                 // vec4 caustic = causticT * causticColor;
 
-                float fadeoutDistance = 15.;
+                float fadeoutDistance = 10.;
                 float foamCutout = 0.25;
                 float foamTDepthScale = 2.0;
                 float foamTDepthFalloff = 2.0;
