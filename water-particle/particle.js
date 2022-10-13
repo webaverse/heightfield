@@ -838,7 +838,7 @@ class WaterParticleEffect {
               count ++;
             }
             if (brokenAttribute.getX(i) < 1) {
-              brokenAttribute.setX(i, brokenAttribute.getX(i) + 0.01);
+              brokenAttribute.setX(i, brokenAttribute.getX(i) + 0.0085);
               scalesAttribute.setXYZ(
                 i,
                 scalesAttribute.getX(i) * 1.03,
