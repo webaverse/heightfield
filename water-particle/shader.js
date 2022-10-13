@@ -210,7 +210,7 @@ const swimmingRippleSplashVertex = `\
     ${THREE.ShaderChunk.logdepthbuf_pars_vertex}
     varying vec2 vUv;
     varying float vBroken;
-    varying float vSpeed;
+    // varying float vSpeed;
     varying float vRand;
     varying float vId;
 
@@ -220,7 +220,7 @@ const swimmingRippleSplashVertex = `\
     attribute float random;
     attribute vec4 quaternions;
     attribute float broken;
-    attribute float speed;
+    // attribute float speed;
     attribute float playerRotation;
     
     vec3 qtransform(vec3 v, vec4 q) { 
@@ -230,7 +230,7 @@ const swimmingRippleSplashVertex = `\
         mat3 rotY =
             mat3(cos(playerRotation), 0.0, -sin(playerRotation), 0.0, 1.0, 0.0, sin(playerRotation), 0.0, cos(playerRotation));   
         vBroken = broken;
-        vSpeed = speed;
+        // vSpeed = speed;
         vRand = random;
         vUv = uv;
         vId = id;
@@ -249,25 +249,50 @@ const swimmingRippleSplashVertex = `\
 const swimmingRippleSplashFragment = `\
     ${THREE.ShaderChunk.logdepthbuf_pars_fragment}
     varying float vBroken;
-    varying float vSpeed;
+    // varying float vSpeed;
     varying float vRand;
     varying vec2 vUv;
     varying float vId;
 
     uniform float rippleParticleCount;
+    uniform float particleCount;
     uniform float uTime;
+    uniform sampler2D noiseMap;
     uniform sampler2D noiseMap2;
     uniform sampler2D noiseCircleTexture;
     uniform sampler2D splashTexture2;
     uniform sampler2D voronoiNoiseTexture;
     
-    const float PI = 3.1415926535897932384626433832795;
     
+    const float rFrequency = 60.0; 
+    const float rSpeed = .2;
+    const float rThickness = 0.8;
+    const float radiusEnd = .45;
+    const float radiusStart = .08;
+    const float PI = 3.1415926535897932384626433832795;
+
+    //Noise that moves radially outwards via polar coordinates
+    float radialNoise(vec2 uv){ 
+        uv.y -= rSpeed * uTime;
+        const int octaves = 2;
+        const float scale = .05;  
+        float power = 2.2;
+        float total = 0.1;
+        for(int i = 0; i < octaves; i++){
+            total += texture2D(noiseMap2, uv * (power * scale)).r * (1.0 / power);
+            power *= 20.0;
+        }
+        return total;
+    }
+
     void main() {
         float mid = 0.5;
         vec2 rotated = vec2(cos(vRand * 2. * PI) * (vUv.x - mid) * 1. - sin(vRand * 2. * PI) * (vUv.y - mid) * 1. + mid,
                     cos(vRand * 2. * PI) * (vUv.y - mid) * 1. + sin(vRand * 2. * PI) * (vUv.x - mid) * 1. + mid);
-        
+        vec3 noise2 = texture2D(
+            noiseMap,
+            rotated
+        ).rgb;
         if(vId < rippleParticleCount - 0.5){
             vec4 noiseCircle = texture2D(
                 noiseCircleTexture,
@@ -280,22 +305,24 @@ const swimmingRippleSplashFragment = `\
             else{
                 gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
             }
-            if(vSpeed > 0.1){
-                if(vUv.y < 0.4){
-                    discard;
-                }
-            }    
+            // if(vSpeed > 0.1){
+            if(vUv.y < 0.4){
+                discard;
+            }
+            // } 
+            float broken = abs( sin( 1.0 - vBroken ) ) - noise2.g;
+            if ( broken < 0.0001 ) discard;   
         }
-        else{
+        else if(vId < particleCount - 1.5){
             vec2 mainUv = vec2(
                 vUv.x , 
-                vUv.y - uTime / 2000.
+                vUv.y - uTime / 2.
             ); 
             vec4 voronoiNoise = texture2D(
                 voronoiNoiseTexture,
                 mainUv
             );
-            vec2 distortionUv = mix(rotated, voronoiNoise.rg, 0.3);
+            vec2 distortionUv = mix(rotated, voronoiNoise.rg, 0.0);
             vec4 splash = texture2D(
                 splashTexture2,
                 distortionUv
@@ -306,15 +333,39 @@ const swimmingRippleSplashFragment = `\
                 discard;
             }
             else{
-                gl_FragColor = vec4(0.6, 0.6, 0.6, 1.0) * voronoiNoise;
+                gl_FragColor = voronoiNoise;
+                gl_FragColor.rgb *= 3.;
+                gl_FragColor.a = 0.5;
             }
+            float broken = abs( sin( 1.0 - vBroken ) ) - noise2.g;
+            if ( broken < 0.0001 ) discard;
         }
-        vec3 noise2 = texture2D(
-            noiseMap2,
-            rotated
-        ).rgb;
-        float broken = abs( sin( 1.0 - vBroken ) ) - noise2.g;
-        if ( broken < 0.0001 ) discard;
+        else{
+            vec2 uv = vUv;
+
+            vec2 center = vec2(.5, .5);
+            vec2 toCenter = uv - center;
+            float dist = length(toCenter);
+
+            float distScalar = max(0.0, 1.0 - dist / radiusEnd);
+            float ripple = sin((dist - rSpeed * uTime) * rFrequency);
+            ripple = max(0.0, ripple);
+            ripple = pow(ripple, rThickness);
+            ripple = (dist > radiusStart) ? ripple * distScalar : 0.0;
+            
+            float angle = atan(toCenter.x, toCenter.y);
+            angle = (angle + PI) / (2.0 * PI);
+            float noise = radialNoise(vec2(angle, dist));
+            
+            float total = ripple;
+            total -= noise;
+            total = total < .01 ? 0.0 : 1.0;
+            
+            gl_FragColor = vec4(total);
+            gl_FragColor.a *= pow(distance(center, uv), 3.) * 100.;
+        }
+        
+       
         
     ${THREE.ShaderChunk.logdepthbuf_fragment}
     }

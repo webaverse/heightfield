@@ -26,7 +26,8 @@ rotateY.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
 
 
 class WaterParticleEffect {
-  constructor() {
+  constructor(mirrorInvisibleList) {
+    this.mirrorInvisibleList = mirrorInvisibleList;
     this.scene = useInternals().sceneLowPriority;
     this.camera = useInternals().camera;
     this.contactWater = false;
@@ -209,8 +210,8 @@ class WaterParticleEffect {
         
         for (let i = 0; i < particleCount; i++) {
           if (this.fallingSpeed > 3) {
-            this.divingHigherSplash.info.velocity[i].y = 0.08 + 0.03 * Math.random();
-            brokenAttribute.setX(i, 0.22 + Math.random() * 0.1);
+            this.divingHigherSplash.info.velocity[i].y = 0.08 + 0.035 * Math.random();
+            brokenAttribute.setX(i, 0.2 + Math.random() * 0.1);
             scalesAttribute.setX(i, 0.5 + Math.random() * 0.5);
             const theta = 2. * Math.PI * i / particleCount;
             positionsAttribute.setXYZ(
@@ -249,19 +250,19 @@ class WaterParticleEffect {
       if(this.swimmingRippleSplash.info.currentRippleIndex >= rippleCount){
         this.swimmingRippleSplash.info.currentRippleIndex = 0;
       }
-      if(this.swimmingRippleSplash.info.currentSplashIndex >= particleCount){
+      if(this.swimmingRippleSplash.info.currentSplashIndex >= particleCount - 1){
         this.swimmingRippleSplash.info.currentSplashIndex = rippleCount;
       }
       if (this.swimmingRippleSplash) {
         const brokenAttribute = this.swimmingRippleSplash.geometry.getAttribute('broken');
         const positionsAttribute = this.swimmingRippleSplash.geometry.getAttribute('positions');
         const scalesAttribute = this.swimmingRippleSplash.geometry.getAttribute('scales');
-        const speedAttribute = this.swimmingRippleSplash.geometry.getAttribute('speed');
+        // const speedAttribute = this.swimmingRippleSplash.geometry.getAttribute('speed');
         const playerRotationAttribute = this.swimmingRippleSplash.geometry.getAttribute('playerRotation');
         const randAttribute = this.swimmingRippleSplash.geometry.getAttribute('random');
         if (
           timestamp - this.swimmingRippleSplash.info.lastEmmitTime > 170 * Math.pow((1.1 - this.currentSpeed), 0.3) 
-          && this.currentSpeed > 0.005 
+          && this.currentSpeed > 0.1 
           && this.contactWater
         ) {
           if(
@@ -275,8 +276,8 @@ class WaterParticleEffect {
                 playerRotationAttribute.setX(this.swimmingRippleSplash.info.currentRippleIndex, -this.player.rotation.y);
               }
 
-              speedAttribute.setX(this.swimmingRippleSplash.info.currentRippleIndex, this.currentSpeed);
-              brokenAttribute.setX(this.swimmingRippleSplash.info.currentRippleIndex, 0.1);
+              // speedAttribute.setX(this.swimmingRippleSplash.info.currentRippleIndex, this.currentSpeed);
+              brokenAttribute.setX(this.swimmingRippleSplash.info.currentRippleIndex, 0.03 * Math.random());
               scalesAttribute.setX(this.swimmingRippleSplash.info.currentRippleIndex, 1.5 + Math.random() * 0.1);
               if (this.currentSpeed > 0.1) {
                 positionsAttribute.setXYZ(
@@ -286,15 +287,15 @@ class WaterParticleEffect {
                   this.player.position.z + 0.25 * this.playerDir.z + (Math.random() - 0.5) * 0.1
                 );
               }
-              else {
-                positionsAttribute.setXYZ(
-                  this.swimmingRippleSplash.info.currentRippleIndex,
-                  this.player.position.x - 0.05 * this.playerDir.x, 
-                  this.waterSurfaceHeight, 
-                  this.player.position.z - 0.05 * this.playerDir.z
-                );
-              }
-              speedAttribute.setX(this.swimmingRippleSplash.info.currentSplashIndex, this.currentSpeed);
+              // else {
+              //   positionsAttribute.setXYZ(
+              //     this.swimmingRippleSplash.info.currentRippleIndex,
+              //     this.player.position.x - 0.05 * this.playerDir.x, 
+              //     this.waterSurfaceHeight, 
+              //     this.player.position.z - 0.05 * this.playerDir.z
+              //   );
+              // }
+              // speedAttribute.setX(this.swimmingRippleSplash.info.currentSplashIndex, this.currentSpeed);
               if (this.currentSpeed > 0.3) {
                 
                 brokenAttribute.setX(this.swimmingRippleSplash.info.currentSplashIndex, 0.2 + 0.2 * Math.random());
@@ -317,20 +318,47 @@ class WaterParticleEffect {
               this.swimmingRippleSplash.info.currentSplashIndex ++;
               this.swimmingRippleSplash.info.lastEmmitTime = timestamp;
             }
+           
         }
-        for (let i = 0; i < particleCount; i++) {
+        for (let i = 0; i < particleCount - 1; i++) {
           scalesAttribute.setX(i, scalesAttribute.getX(i) + 0.1 * (this.currentSpeed + 0.3));
           if (brokenAttribute.getX(i) < 1)
             brokenAttribute.setX(i, brokenAttribute.getX(i) + 0.01);
         }
+
+        // handel the ripple if contact water but isn't swimming
+        if (!hasSwim) {
+          this.swimmingRippleSplash.info.lastEmmitTime = timestamp;
+        }
+        if (this.currentSpeed < 0.005 && hasSwim && this.waterSurfaceHeight < this.player.position.y - 0.1){
+          if (
+            timestamp - this.swimmingRippleSplash.info.lastEmmitTime > 1500 
+            && scalesAttribute.getX(particleCount - 1) < 0.5
+          ) {
+            scalesAttribute.setX(particleCount - 1, 0.5);
+          }
+        }
+        else{
+          scalesAttribute.setX(particleCount - 1, 0.0);
+        }
+        positionsAttribute.setXYZ(
+          particleCount - 1,
+          this.player.position.x + 0.1 * this.playerDir.x, 
+          this.waterSurfaceHeight, 
+          this.player.position.z + 0.1 * this.playerDir.z
+        );
+        if (scalesAttribute.getX(particleCount - 1) < 3.5) {
+          scalesAttribute.setX(particleCount - 1, scalesAttribute.getX(particleCount - 1) + 0.03);
+        }
         
+
         positionsAttribute.needsUpdate = true;
         randAttribute.needsUpdate = true;
         scalesAttribute.needsUpdate = true;
-        speedAttribute.needsUpdate = true;
+        // speedAttribute.needsUpdate = true;
         brokenAttribute.needsUpdate = true;
         playerRotationAttribute.needsUpdate = true;
-        this.swimmingRippleSplash.material.uniforms.uTime.value = timestamp;
+        this.swimmingRippleSplash.material.uniforms.uTime.value = timestamp / 1000;
       }     
     }
     _handleSwimmingRippleSplash();
@@ -583,9 +611,9 @@ class WaterParticleEffect {
       if (this.freestyleSplash) {
         this.freestyleSplashGroup.rotation.copy(this.player.rotation);
         this.freestyleSplashGroup.position.copy(this.player.position);
-        this.freestyleSplashGroup.position.x += this.playerDir.x * 0.6;
+        this.freestyleSplashGroup.position.x += this.playerDir.x * 0.55;
         this.freestyleSplashGroup.position.y = this.waterSurfaceHeight - 0.02;
-        this.freestyleSplashGroup.position.z += this.playerDir.z * 0.6;
+        this.freestyleSplashGroup.position.z += this.playerDir.z * 0.55;
           
         const particleCount = this.freestyleSplash.info.particleCount;
         const positionsAttribute = this.freestyleSplash.geometry.getAttribute('positions');
@@ -639,7 +667,7 @@ class WaterParticleEffect {
           && emitCount < maxEmit
         ) {
             const right = this.player.avatarCharacterSfx.currentSwimmingHand === 'right' ? 1 : -1;
-            brokenAttribute.setX(i, 0.1 + Math.random() * 0.2);
+            brokenAttribute.setX(i, 0.18 + Math.random() * 0.2);
             scalesAttribute.setXY(i, 2. + Math.random() * 1.5, 1. + Math.random() * 2.5);
             const theta = 2. * Math.PI * emitCount / maxEmit;
             positionsAttribute.setXYZ(
@@ -723,7 +751,7 @@ class WaterParticleEffect {
         localVector6.set(speed, -0.001, speed);
         _playLittleSplash(
           this.playerDir.x * 0.35 + (Math.random() - 0.5) * 0.1 + localVector4.x * 0.15, 
-          -0.05, 
+          -0.03, 
           this.playerDir.z * 0.35 + (Math.random() - 0.5) * 0.1 + localVector4.z * 0.15,
           1,
           rightScale + Math.random() * 0.2,
@@ -733,7 +761,7 @@ class WaterParticleEffect {
         );
         _playLittleSplash(
           this.playerDir.x * 0.35 + (Math.random() - 0.5) * 0.1 + localVector4.x * -0.15, 
-          -0.05, 
+          -0.03, 
           this.playerDir.z * 0.35 + (Math.random() - 0.5) * 0.1 + localVector4.z * -0.15,
           1,
           leftScale + Math.random() * 0.2,
@@ -759,37 +787,45 @@ class WaterParticleEffect {
   initRipple() {
     this.rippleGroup = getRippleGroup();
     this.scene.add(this.rippleGroup);
+    this.mirrorInvisibleList.push(this.rippleGroup);
   }
   initDivingLowerSplash() {
     this.divingLowerSplash = getDivingLowerSplash();
     this.scene.add(this.divingLowerSplash);
+    this.mirrorInvisibleList.push(this.divingLowerSplash);
   }
   initDivingHigherSplash() {
     this.divingHigherSplash = getDivingHigherSplash();
     this.scene.add(this.divingHigherSplash);
+    this.mirrorInvisibleList.push(this.divingHigherSplash);
   }
   initSwimmingRippleSplash() {
     this.swimmingRippleSplash = getSwimmingRippleSplash();
     this.scene.add(this.swimmingRippleSplash);
+    this.mirrorInvisibleList.push(this.swimmingRippleSplash);
   }
   initDroplet() {
     this.dropletgroup = getDroplet();
     this.droplet = this.dropletgroup.children[0];
     this.dropletRipple = this.dropletgroup.children[1];
     this.scene.add(this.dropletgroup);
+    this.mirrorInvisibleList.push(this.dropletgroup);
   }
   initBubble() {
     this.bubble = getBubble();
     this.scene.add(this.bubble);
+    this.mirrorInvisibleList.push(this.bubble);
   }
   initLittleSplash() {
     this.littleSplash = getLittleSplash();
     this.littleSplashGroup.add(this.littleSplash)
     this.scene.add(this.littleSplashGroup);
+    this.mirrorInvisibleList.push(this.littleSplashGroup);
   }
   initfreestyleSplash() {
     this.freestyleSplashGroup = getFreestyleSplash();
     this.scene.add(this.freestyleSplashGroup);
+    this.mirrorInvisibleList.push(this.freestyleSplashGroup);
   }
 }
 

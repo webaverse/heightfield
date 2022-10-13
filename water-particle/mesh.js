@@ -15,6 +15,7 @@ const baseUrl = import.meta.url.replace(/(\/)[^\/\\]*$/, '$1');
 const {useLoaders} = metaversefile;
 const voronoiNoiseTexture = loadTexture(`./assets/textures/voronoiNoise.jpg`);
 const noiseMap = loadTexture(`./assets/textures/noise.jpg`);
+const noiseMap2 = loadTexture(`./assets/textures/noise2.png`);
 const noiseCircleTexture = loadTexture(`./assets/textures/noiseCircle6.png`, false);
 const rippleTexture2 = loadTexture(`./assets/textures/ripple2.png`);
 const splashTexture2 = loadTexture(`./assets/textures/Splat3.png`, false);
@@ -167,14 +168,14 @@ const getDivingHigherSplash = () => {
     return divingHigherSplash;
 }
 const getSwimmingRippleSplash = () => {
-    const particleCount = 30;
+    const particleCount = 31;
     const attributeSpecs = [];
     attributeSpecs.push({name: 'id', itemSize: 1});
     attributeSpecs.push({name: 'scales', itemSize: 1});
     attributeSpecs.push({name: 'broken', itemSize: 1});
     attributeSpecs.push({name: 'random', itemSize: 1});
     attributeSpecs.push({name: 'playerRotation', itemSize: 1});
-    attributeSpecs.push({name: 'speed', itemSize: 1});
+    // attributeSpecs.push({name: 'speed', itemSize: 1});
     const geometry2 = new THREE.PlaneGeometry(0.32, 0.36);
     const geometry = _getGeometry(geometry2, attributeSpecs, particleCount);
 
@@ -194,7 +195,13 @@ const getSwimmingRippleSplash = () => {
             rippleParticleCount: {
                 value: 15,
             },
+            particleCount: {
+                value: particleCount,
+            },
             noiseMap2:{
+                value: noiseMap2
+            },
+            noiseMap:{
                 value: noiseMap
             },
             noiseCircleTexture:{
@@ -212,7 +219,7 @@ const getSwimmingRippleSplash = () => {
         side: THREE.DoubleSide,
         transparent: true,
         depthWrite: false,
-        blending: THREE.AdditiveBlending,
+        // blending: THREE.AdditiveBlending,
     });
     const swimmingRippleSplash = new THREE.InstancedMesh(geometry, material, particleCount);
     
