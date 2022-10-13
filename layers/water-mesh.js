@@ -4,7 +4,6 @@ import {bufferSize, WORLD_BASE_HEIGHT, MIN_WORLD_HEIGHT, MAX_WORLD_HEIGHT} from 
 import WaterParticleEffect from '../water-particle/particle.js';
 import _createWaterMaterial from './water-material.js';
 
-import { Refractor } from 'three/examples/jsm/objects/Refractor.js';
 
 const {useProcGenManager, useGeometryBuffering, useLocalPlayer, useInternals} = metaversefile;
 const {BufferedMesh, GeometryAllocator} = useGeometryBuffering();
