@@ -257,6 +257,7 @@ const swimmingRippleSplashFragment = `\
     uniform float rippleParticleCount;
     uniform float particleCount;
     uniform float uTime;
+    uniform float op;
     uniform sampler2D noiseMap;
     uniform sampler2D noiseMap2;
     uniform sampler2D noiseCircleTexture;
@@ -363,6 +364,7 @@ const swimmingRippleSplashFragment = `\
             
             gl_FragColor = vec4(total);
             gl_FragColor.a *= pow(distance(center, uv), 3.) * 100.;
+            gl_FragColor.a *= op;
         }
         
        

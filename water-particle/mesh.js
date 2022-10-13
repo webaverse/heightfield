@@ -192,6 +192,9 @@ const getSwimmingRippleSplash = () => {
             uTime: {
                 value: 0,
             },
+            op: {
+                value: 0,
+            },
             rippleParticleCount: {
                 value: 15,
             },

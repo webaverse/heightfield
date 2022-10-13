@@ -332,10 +332,11 @@ class WaterParticleEffect {
         }
         if (this.currentSpeed < 0.005 && hasSwim && this.waterSurfaceHeight < this.player.position.y - 0.1){
           if (
-            timestamp - this.swimmingRippleSplash.info.lastEmmitTime > 1500 
-            && scalesAttribute.getX(particleCount - 1) < 0.5
+            timestamp - this.swimmingRippleSplash.info.lastEmmitTime > 1500
+            && scalesAttribute.getX(particleCount - 1) < 3.5
           ) {
-            scalesAttribute.setX(particleCount - 1, 0.5);
+            scalesAttribute.setX(particleCount - 1, 3.5);
+            this.swimmingRippleSplash.material.uniforms.op.value = 0.1;
           }
         }
         else{
@@ -347,9 +348,10 @@ class WaterParticleEffect {
           this.waterSurfaceHeight, 
           this.player.position.z + 0.1 * this.playerDir.z
         );
-        if (scalesAttribute.getX(particleCount - 1) < 3.5) {
-          scalesAttribute.setX(particleCount - 1, scalesAttribute.getX(particleCount - 1) + 0.03);
+        if (this.swimmingRippleSplash.material.uniforms.op.value < 1.) {
+          this.swimmingRippleSplash.material.uniforms.op.value += 0.01;
         }
+        
         
 
         positionsAttribute.needsUpdate = true;
