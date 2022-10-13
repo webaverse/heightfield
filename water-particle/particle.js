@@ -806,7 +806,7 @@ class WaterParticleEffect {
               positionsAttribute.setXYZ(
                 i,
                 (Math.random() - 0.5) * 0.3,
-                -0.3 - Math.random() * 0.3,
+                -0.25 - Math.random() * 0.3,
                 (Math.random() - 0.5) * 0.3
               )
               opacityAttribute.setX(i, Math.random() * 0.5);

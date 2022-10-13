@@ -5,7 +5,7 @@ import WaterParticleEffect from '../water-particle/particle.js';
 import _createWaterMaterial from './water-material.js';
 
 
-const {useProcGenManager, useGeometryBuffering, useLocalPlayer, useInternals} = metaversefile;
+const {useProcGenManager, useGeometryBuffering, useLocalPlayer, useInternals, useRenderSettings} = metaversefile;
 const {BufferedMesh, GeometryAllocator} = useGeometryBuffering();
 const procGenManager = useProcGenManager();
 
@@ -15,7 +15,7 @@ const fakeMaterial = new THREE.MeshBasicMaterial({
   color: 0xffffff,
 });
 const {renderer, camera, scene} = useInternals();
-
+const renderSettings = useRenderSettings();
 //
 const localVector3D = new THREE.Vector3();
 const localVector3D2 = new THREE.Vector3();
@@ -105,14 +105,11 @@ export class WaterMesh extends BufferedMesh {
     this.rotationMatrix = new THREE.Matrix4();
     this.lookAtPosition = new THREE.Vector3(0, 0, -1);
     this.clipPlane = new THREE.Vector4();
-
     this.view = new THREE.Vector3();
     this.target = new THREE.Vector3();
 		this.q = new THREE.Vector4();
-
     this.textureMatrix = new THREE.Matrix4();
     this.reflectionVirtualCamera = new THREE.PerspectiveCamera();
-
     const parameters = {
 			minFilter: THREE.LinearFilter,
 			magFilter: THREE.LinearFilter,
@@ -135,7 +132,7 @@ export class WaterMesh extends BufferedMesh {
     this.clipVector = new THREE.Vector4();
     this.refractionClipPlane = new THREE.Plane();
     
-    this.setMaterialTexture();
+    this.initSetUp();
   }
   addChunk(chunk, chunkResult) {
     const key = procGenManager.getNodeHash(chunk);
@@ -407,6 +404,27 @@ export class WaterMesh extends BufferedMesh {
     particleEffect.player = localPlayer;
     particleEffect.waterSurfaceHeight = waterSurfaceHeight;
   };
+  updateUnderWater(underWater) {
+    if(renderSettings.findRenderSettings(scene)){
+      const d = underWater ? 0.02 : 0; 
+      renderSettings.findRenderSettings(scene).fog.color.r = 4 / 255;
+      renderSettings.findRenderSettings(scene).fog.color.g = 41.5 / 255;
+      renderSettings.findRenderSettings(scene).fog.color.b = 44.5 / 255;
+      renderSettings.findRenderSettings(scene).fog.density = d;
+    }
+    if (underWater) {
+      if (!this.cameraHasMask) {
+        camera.add(this.underWaterMask);
+        this.cameraHasMask = true;
+      } 
+    }
+    else {
+      if (this.cameraHasMask) {
+        camera.remove(this.underWaterMask);
+        this.cameraHasMask = false;
+      }
+    }
+  }
   renderDepthTexture(){
     renderer.setRenderTarget(this.depthRenderTarget);
     renderer.clear();
@@ -664,7 +682,7 @@ export class WaterMesh extends BufferedMesh {
     }
   }
   
-  setMaterialTexture() {
+  initSetUp() {
     this.material.uniforms.refractionTexture.value = this.refractionRenderTarget.texture;
     this.material.uniforms.mirror.value = this.mirrorRenderTarget.texture;
     this.material.uniforms.textureMatrix.value = this.textureMatrix;
@@ -683,11 +701,12 @@ export class WaterMesh extends BufferedMesh {
     foamTexture.wrapS = foamTexture.wrapT = THREE.RepeatWrapping;
     this.material.uniforms.foamTexture.value = foamTexture;
 
-    
-    // const geometry = new THREE.BoxGeometry( 1, 1, 1 );
-    // const material = new THREE.MeshBasicMaterial( {color: 0xff0000} );
-    // const cube = new THREE.Mesh( geometry, material );
-    // scene.add( cube );
+
+    const geometry = new THREE.PlaneGeometry( 2, 2 );
+    const material = new THREE.MeshBasicMaterial( {color: 0x097F89, side: THREE.DoubleSide, transparent: true, opacity: 0.5, depthWrite: false} );
+    this.underWaterMask = new THREE.Mesh(geometry, material);
+    this.underWaterMask.position.set(0, 0, -0.2);
+    this.cameraHasMask = false;
   }
   update() {
     const localPlayer = useLocalPlayer();
@@ -703,13 +722,18 @@ export class WaterMesh extends BufferedMesh {
       // handle swimming action
       this.handleSwimAction(contactWater, localPlayer, currentWaterSurfaceHeight);
     }
+    this.underWater = camera.position.y - 0.03 < currentWaterSurfaceHeight;
+
     // handle particle
-    this.updateParticle(contactWater, localPlayer, currentWaterSurfaceHeight + 0.01)
+    this.updateParticle(contactWater, localPlayer, currentWaterSurfaceHeight + 0.01);
+
+    // underWater
+    this.updateUnderWater(this.underWater);
 
     this.material.uniforms.uTime.value = performance.now() / 1000;
     this.material.uniforms.playerPos.value.copy(localPlayer.position);
-    this.underWater = camera.position.y < currentWaterSurfaceHeight - 0.1;
     this.material.uniforms.cameraInWater.value = this.underWater;
+    
     
   }
   
