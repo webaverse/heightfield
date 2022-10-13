@@ -568,18 +568,19 @@ export class WaterMesh extends BufferedMesh {
     const localPlayer = useLocalPlayer();
     const lastUpdateCoordKey = this.lastUpdateCoord.x + ',' + this.lastUpdateCoord.y; 
     const currentChunkPhysicObject = this.chunkPhysicObjcetMap.get(lastUpdateCoordKey); // use lodTracker.lastUpdateCoord as a key to check which chunk player currently at 
-
+    let currentWaterSurfaceHeight = 0;
+    let contactWater = false;
     // handel water physic and swimming action if we get the physicObject of the current chunk
     if (currentChunkPhysicObject) { 
-      const currentWaterSurfaceHeight = this.waterHeightMap.get(lastUpdateCoordKey); // use lodTracker.lastUpdateCoord as a key to check the water height of the current chunk
-      const contactWater = this.checkWaterContact(currentChunkPhysicObject, localPlayer, currentWaterSurfaceHeight); // check whether player contact the water
+      currentWaterSurfaceHeight = this.waterHeightMap.get(lastUpdateCoordKey); // use lodTracker.lastUpdateCoord as a key to check the water height of the current chunk
+      contactWater = this.checkWaterContact(currentChunkPhysicObject, localPlayer, currentWaterSurfaceHeight); // check whether player contact the water
 
       // handle swimming action
       this.handleSwimAction(contactWater, localPlayer, currentWaterSurfaceHeight);
-
-      // handle particle
-      this.updateParticle(contactWater, localPlayer, currentWaterSurfaceHeight + 0.01)
     }
+    // handle particle
+    this.updateParticle(contactWater, localPlayer, currentWaterSurfaceHeight + 0.01)
+
     this.material.uniforms.uTime.value = performance.now() / 1000;
     this.material.uniforms.playerPos.value.copy(localPlayer.position);
     

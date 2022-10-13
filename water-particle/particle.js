@@ -9,6 +9,7 @@ import {
   getBubble,
   getLittleSplash,
   getFreestyleSplash,
+  getBodyDrop,
 } from './mesh.js';
 
 const {useSound, useInternals} = metaversefile;
@@ -72,6 +73,10 @@ class WaterParticleEffect {
     this.freestyleSplash = null;
     this.freestyleSplashGroup = new THREE.Group();
     this.initfreestyleSplash();
+
+    this.bodyDrop = null;
+    this.bodyDropGroup = null;
+    this.initbodyDrop();
   }
   
   update() {
@@ -776,10 +781,90 @@ class WaterParticleEffect {
       
       this.lastSwimmingHand = this.player.avatarCharacterSfx.currentSwimmingHand; 
     }
-    
     if (hasSwim && this.waterSurfaceHeight < this.player.position.y - 0.1 && this.currentSpeed > 0.1) {
       _handleSwimmingSplash();
     }
+
+    const _handleBodyDrop = () => {
+      if (this.bodyDrop) {
+        this.bodyDropGroup.position.copy(this.player.position);
+        if (this.contactWater) {
+          this.bodyDrop.info.lastContactWater = timestamp;
+        }
+        const lastCOntactWaterTime = this.bodyDrop.info.lastContactWater;
+        const playParticle = timestamp - this.bodyDrop.info.lastContactWater > 10 && timestamp - this.bodyDrop.info.lastContactWater < 10000;
+        const particleCount = this.bodyDrop.info.particleCount;
+        const positionsAttribute = this.bodyDrop.geometry.getAttribute('positions');
+        const scalesAttribute = this.bodyDrop.geometry.getAttribute('scales');
+        const brokenAttribute = this.bodyDrop.geometry.getAttribute('broken');
+        const opacityAttribute = this.bodyDrop.geometry.getAttribute('opacity');
+        const maxEmit = 1;
+        let count = 0;
+        for (let i = 0; i < particleCount; i ++) {
+          if (i < this.bodyDrop.info.dropCount) {
+            if (opacityAttribute.getX(i) <= 0 && count < maxEmit && playParticle) {
+              positionsAttribute.setXYZ(
+                i,
+                (Math.random() - 0.5) * 0.3,
+                -0.3 - Math.random() * 0.3,
+                (Math.random() - 0.5) * 0.3
+              )
+              opacityAttribute.setX(i, Math.random() * 0.5);
+              scalesAttribute.setXYZ(i, 1, 3 + Math.random() * 2, 1);
+              count ++;
+            }
+            opacityAttribute.setX(i, opacityAttribute.getX(i) - 0.01);
+            positionsAttribute.setY(
+              i,
+              positionsAttribute.getY(i) - 0.0198
+            )
+            scalesAttribute.setXYZ(i, 1, scalesAttribute.getY(i) * 1.03, 1);
+          }
+          else {
+            if (brokenAttribute.getX(i) >= 1 && count < maxEmit && playParticle) {
+              positionsAttribute.setXYZ(
+                i,
+                (Math.random() - 0.5) * 0.25,
+                -0.3 - Math.random() * 0.6,
+                (Math.random() - 0.5) * 0.25
+              )
+              brokenAttribute.setX(i, 0.35 + 0.5 * Math.random());
+              scalesAttribute.setXYZ(
+                i, 
+                4.5 + Math.random() * 4.5, 
+                4.5 + Math.random() * 4.5,  
+                4.5 + Math.random() * 4.5
+              );
+              count ++;
+            }
+            if (brokenAttribute.getX(i) < 1) {
+              brokenAttribute.setX(i, brokenAttribute.getX(i) + 0.01);
+              scalesAttribute.setXYZ(
+                i,
+                scalesAttribute.getX(i) * 1.03,
+                scalesAttribute.getY(i) * 1.03,
+                scalesAttribute.getZ(i) * 1.03
+              )
+            }
+           
+          }
+          
+        }
+        positionsAttribute.needsUpdate = true;
+        scalesAttribute.needsUpdate = true;
+        brokenAttribute.needsUpdate = true;
+        opacityAttribute.needsUpdate = true;
+        this.bodyDrop.material.uniforms.cameraBillboardQuaternion.value.copy(this.camera.quaternion);
+      }
+      else {
+        if (this.bodyDropGroup.children.length > 0) {
+          this.bodyDrop = this.bodyDropGroup.children[0];
+        }
+      }
+      
+    }
+    
+    _handleBodyDrop();
     
     this.lastContactWater = this.contactWater;
     this.scene.updateMatrixWorld();
@@ -828,6 +913,11 @@ class WaterParticleEffect {
     this.freestyleSplashGroup = getFreestyleSplash();
     this.scene.add(this.freestyleSplashGroup);
     this.mirrorInvisibleList.push(this.freestyleSplashGroup);
+  }
+  initbodyDrop() {
+    this.bodyDropGroup = getBodyDrop();
+    this.scene.add(this.bodyDropGroup);
+    this.mirrorInvisibleList.push(this.bodyDropGroup);
   }
 }
 

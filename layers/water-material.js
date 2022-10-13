@@ -59,9 +59,7 @@ const _createWaterMaterial = () => {
                 vec2 d = normalize(dirXZ);
                 float f = k * (dot(d, pos.xz) - c * uTime);
                 float a = (steepness / k);
-                // pos.x += d.x * (a * cos(f));
-                // pos.y += a * sin(f); 
-                // pos.z += d.y * (a * cos(f));
+                
                 tangent += vec3(
                     - d.x * d.x * (steepness * sin(f)),
                     d.x * (steepness * cos(f)),
@@ -86,10 +84,10 @@ const _createWaterMaterial = () => {
                 vUv = textureMatrix * vec4( pos, 1.0 );
 
                 // 1.dirX  2.dirZ  3.steepness  4.waveLength
-                vec4 waveA = vec4(1.0, 0.0, 0.05, 30.);
-                vec4 waveB = vec4(0.0, 1.0, 0.05, 15.);
-                vec4 waveC = vec4(-0.7, -0.3, 0.075, 7.5);
-                vec4 waveD = vec4(-0.3, -0.7, 0.075, 3.5);
+                vec4 waveA = vec4(1.0, 0.0, 0.05, 15.);
+                vec4 waveB = vec4(0.0, 1.0, 0.05, 7.5);
+                vec4 waveC = vec4(-0.7, -0.3, 0.075, 3.75);
+                vec4 waveD = vec4(-0.3, -0.7, 0.075, 1.75);
 
                 vec3 tangent = vec3(1.0, 0.0, 0.0);
                 vec3 binormal = vec3(0.0, 0.0, 1.0);
@@ -101,17 +99,6 @@ const _createWaterMaterial = () => {
                 pos += gerstnerWave(waveC.x, waveC.y, waveC.z, waveC.w, tangent, binormal, tempPos);
                 pos += gerstnerWave(waveD.x, waveD.y, waveD.z, waveD.w, tangent, binormal, tempPos);
 
-
-                // vec3 tangent = vec3(
-                //     1. - d.x * d.x * (steepness * sin(f)),
-                //     d.x * (steepness * cos(f)),
-                //     -d.x * d.y * (steepness * sin(f))
-                // );
-                // vec3 binormal = vec3(
-                //     -d.x * d.y * (steepness * sin(f)),
-                //     d.y * (steepness * cos(f)),
-                //     1. - d.y * d.y * (steepness * sin(f))
-                // );
                 vec3 waveNormal = normalize(cross(binormal, tangent));
                 vNormal = waveNormal;
 
@@ -156,15 +143,11 @@ const _createWaterMaterial = () => {
             varying vec3 vNormal;
             
             float blendOverlay( float base, float blend ) {
-
                 return( base < 0.5 ? ( 2.0 * base * blend ) : ( 1.0 - 2.0 * ( 1.0 - base ) * ( 1.0 - blend ) ) );
-    
             }
     
             vec3 blendOverlay( vec3 base, vec3 blend ) {
-    
                 return vec3( blendOverlay( base.r, blend.r ), blendOverlay( base.g, blend.g ), blendOverlay( base.b, blend.b ) );
-    
             }
             void sunLight( const vec3 surfaceNormal, const vec3 eyeDirection, float shiny, float spec, float diffuse, inout vec3 diffuseColor, inout vec3 specularColor, vec3 sunColor, vec3 sunDir) {
                 vec3 reflection = normalize( reflect( -sunDir, surfaceNormal ) );
@@ -225,7 +208,7 @@ const _createWaterMaterial = () => {
                 foamT *= mix(vec4(0.), foamT, fadeoutLerp);
 
                 // foam line
-                vec4 foamColor = waterColor + vec4(0.7, 0.7, 0.7, 0.5 * fadeoutLerp);
+                vec4 foamColor = waterColor + vec4(1.0, 1.0, 1.0, 0.5 * fadeoutLerp);
                 float foamDepth = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, 0.3, 2.0);
                 float foamShoreWidth = 0.1;
                 vec4 foamLineCutOut = saturate(cutout(foamDepth, foamShoreWidth) + foamT);
@@ -249,7 +232,7 @@ const _createWaterMaterial = () => {
                 // }
                 // #include <encodings_fragment>
 
-                vec3 sunColor = vec3(0., 0., 0.);
+                vec3 sunColor = vec3(1.0, 1.0, 1.0);
                 vec3 sunDir = vec3(0.70707, 0.70707, 0.);
 
                 vec3 surfaceNormal = normalize( vNormal * vec3( 1.5, 1.0, 1.5 ) );
