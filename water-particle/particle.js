@@ -792,7 +792,7 @@ class WaterParticleEffect {
           this.bodyDrop.info.lastContactWater = timestamp;
         }
         const lastCOntactWaterTime = this.bodyDrop.info.lastContactWater;
-        const playParticle = timestamp - this.bodyDrop.info.lastContactWater > 10 && timestamp - this.bodyDrop.info.lastContactWater < 10000;
+        const playParticle = timestamp - lastCOntactWaterTime > 10 && timestamp - lastCOntactWaterTime < 10000;
         const particleCount = this.bodyDrop.info.particleCount;
         const positionsAttribute = this.bodyDrop.geometry.getAttribute('positions');
         const scalesAttribute = this.bodyDrop.geometry.getAttribute('scales');

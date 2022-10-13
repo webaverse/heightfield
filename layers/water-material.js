@@ -30,6 +30,9 @@ const _createWaterMaterial = () => {
             mirror: {
                 value: null
             },
+            refractionTexture: {
+                value: null
+            },
             textureMatrix: {
                 value: null
             },
@@ -39,6 +42,9 @@ const _createWaterMaterial = () => {
             playerPos: {
                 value: new THREE.Vector3()
             },
+            cameraInWater: {
+                value: null
+            }
 
         },
         vertexShader: `\
@@ -127,6 +133,8 @@ const _createWaterMaterial = () => {
             uniform vec3 playerPos;
 		    varying vec4 vUv;
             uniform sampler2D mirror;
+            uniform sampler2D refractionTexture;
+            uniform bool cameraInWater;
             
             // varying vec2 vUv;
             varying vec3 vPos;
@@ -174,84 +182,112 @@ const _createWaterMaterial = () => {
                 float fragmentLinearEyeDepth = getViewZ(gl_FragCoord.z);
                 float linearEyeDepth = getViewZ(getDepth(screenUV));
 
-                // water and shoreline
-                float depthScale = 15.;
-                float depthFalloff = 3.;
-                float sceneDepth = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, depthScale, depthFalloff);
-                float waterColorDepth = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, 40., 3.);
-                vec4 shoreColor = vec4(0.17992, 0.4992, 0.09968, (1. - sceneDepth));
-                vec4 waterColor = vec4(0.126, 0.47628, 0.6048, (1. - sceneDepth));
-                // vec4 col = sceneDepth * shoreColor + (1. - sceneDepth) * waterColor;
-                vec4 col = mix(shoreColor, waterColor, 1. - waterColorDepth);
-                col.a = 1. - sceneDepth;
+                if (!cameraInWater) {
+                    // water and shoreline
+                    float depthScale = 15.;
+                    float depthFalloff = 3.;
+                    float sceneDepth = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, depthScale, depthFalloff);
+                    float waterColorDepth = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, 40., 3.);
+                    vec4 shoreColor = vec4(0.17992, 0.4992, 0.09968, (1. - sceneDepth));
+                    vec4 waterColor = vec4(0.126, 0.47628, 0.6048, (1. - sceneDepth));
+                    // vec4 col = sceneDepth * shoreColor + (1. - sceneDepth) * waterColor;
+                    vec4 col = mix(shoreColor, waterColor, 1. - waterColorDepth);
+                    col.a = 1. - sceneDepth;
+    
+    
+                    // vec4 causticColor = vec4(0.8, 0.8, 0.8, 1.0);
+                    // float causticCutout = 0.4;
+                    // vec4 causticT = texture2D(causticTexture, vec2(vPos.x * 0.1 + uTime * 0.05, vPos.z * 0.1 + uTime * 0.025));
+                    // vec4 causticT2 = texture2D(causticTexture, vec2(vPos.z * 0.2 + uTime * 0.1, vPos.x * 0.2 - uTime * 0.05));
+                    // causticT = cutout(causticT.r * causticT2.r, causticCutout);
+                    // vec4 caustic = causticT * causticColor;
+    
+                    float fadeoutDistance = 20.;
+                    float fadeoutLerp = saturate(distance(playerPos, vPos) / fadeoutDistance);
+                    
+                    float foamCutout = 0.25;
+                    float foamTDepthScale = 2.0;
+                    float foamTDepthFalloff = 2.0;
+                    float foamAmount = 1.;
+                    float foamTDepth = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, foamTDepthScale, foamTDepthFalloff);
+                    float foamUvY = vPos.z * 0.05;
+                    float foamUvX = foamTDepth * foamAmount + uTime * 0.2;
+                    vec4 foamT = texture2D(foamTexture, vec2(foamUvX, foamUvY));
+                    foamT = cutout((foamT * foamTDepth).r, foamCutout);
+                    foamT *= mix(vec4(0.), foamT, fadeoutLerp);
+    
+                    // foam line
+                    vec4 foamColor = waterColor + vec4(1.0, 1.0, 1.0, 0.5 * fadeoutLerp);
+                    float foamDepth = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, 0.3, 2.0);
+                    float foamShoreWidth = 0.1;
+                    vec4 foamLineCutOut = saturate(cutout(foamDepth, foamShoreWidth) + foamT);
+                    // vec4 foamLineCutOut = saturate(cutout(foamDepth, foamShoreWidth));
+                    vec4 foam = foamLineCutOut * mix(col, foamColor, fadeoutLerp);
+                    // vec4 col2 = col * ((vec4(1.0) - foamLineCutOut) + (vec4(1.0) - causticT)) * 0.5 + foam + caustic;
+                    vec4 col2 = col * ((vec4(1.0) - foamLineCutOut)) + foam;
+    
+                    // gl_FragColor = vec4(col2);
+                    // vec4 base = texture2DProj( mirror, vUv );
+                    // gl_FragColor = vec4( blendOverlay( base.rgb, col2.rgb ), col2.a);
+                    // foam
+                    // float diff = saturate( fragmentLinearEyeDepth - linearEyeDepth );
+                    // if(diff > 0.){
+                    //     vec2 channelA = texture2D( tDudv, vec2(0.25 * vPos.x + uTime * 0.04, 0.5 * vPos.z - uTime * 0.03) ).rg;
+                    //     vec2 channelB = texture2D( tDudv, vec2(0.5 * vPos.x - uTime * 0.05, 0.35 * vPos.z + uTime * 0.04) ).rg;
+                    //     vec2 displacement = (channelA + channelB) * 0.5;
+                    //     displacement = ( ( displacement * 2.0 ) - 1.0 ) * 1.0;
+                    //     diff += displacement.x;
+                    //     gl_FragColor = mix( vec4(1.0, 1.0, 1.0, gl_FragColor.a), gl_FragColor, step( 0.1, diff ) );
+                    // }
+                    // #include <encodings_fragment>
+    
+                    vec3 sunColor = vec3(1.0, 1.0, 1.0);
+                    vec3 sunDir = vec3(0.70707, 0.70707, 0.);
+    
+                    vec3 surfaceNormal = normalize( vNormal * vec3( 1.5, 1.0, 1.5 ) );
+                    vec3 diffuseLight = vec3(0.0);
+                    vec3 specularLight = vec3(0.0);
+                    vec3 worldToEye = eye-vPos.xyz;
+                    vec3 eyeDirection = normalize( worldToEye );
+                    sunLight( surfaceNormal, eyeDirection, 100.0, 2.0, 0.5, diffuseLight, specularLight, sunColor, sunDir);
+                    float distance = length(worldToEye);
+                    float distortionScale = 3.;
+                    vec2 distortion = surfaceNormal.xz * ( 0.001 + 1.0 / distance ) * distortionScale;
+                    vec3 reflectionSample = vec3( texture2D( mirror, vUv.xy / vUv.w + distortion ) );
+                    float theta = max( dot( eyeDirection, surfaceNormal ), 0.0 );
+                    float rf0 = 0.3;
+                    float reflectance = rf0 + ( 1.0 - rf0 ) * pow( ( 1.0 - theta ), 5.0 );
+                    vec3 scatter = max( 0.0, dot( surfaceNormal, eyeDirection ) ) * col2.rgb;
+                    vec3 albedo = mix( ( sunColor * diffuseLight * 0.3 + scatter ) * getShadowMask(), ( vec3( 0.1 ) + reflectionSample * 0.4 + reflectionSample * specularLight ), reflectance);
+                    gl_FragColor = vec4( albedo, col2.a );
+                    gl_FragColor.rgb += col2.rgb;
+                }
+                else{
+                    vec3 waterColor = vec3(0.126, 0.47628, 0.6048);
+                    // vec4 base = texture2DProj( refractionTexture, vUv );
+                    // gl_FragColor = vec4( blendOverlay( base.rgb, waterColor), 1.0);
 
-
-                // vec4 causticColor = vec4(0.8, 0.8, 0.8, 1.0);
-                // float causticCutout = 0.4;
-                // vec4 causticT = texture2D(causticTexture, vec2(vPos.x * 0.1 + uTime * 0.05, vPos.z * 0.1 + uTime * 0.025));
-                // vec4 causticT2 = texture2D(causticTexture, vec2(vPos.z * 0.2 + uTime * 0.1, vPos.x * 0.2 - uTime * 0.05));
-                // causticT = cutout(causticT.r * causticT2.r, causticCutout);
-                // vec4 caustic = causticT * causticColor;
-
-                float fadeoutDistance = 20.;
-                float fadeoutLerp = saturate(distance(playerPos, vPos) / fadeoutDistance);
-                
-                float foamCutout = 0.25;
-                float foamTDepthScale = 2.0;
-                float foamTDepthFalloff = 2.0;
-                float foamAmount = 1.;
-                float foamTDepth = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, foamTDepthScale, foamTDepthFalloff);
-                float foamUvY = vPos.z * 0.05;
-                float foamUvX = foamTDepth * foamAmount + uTime * 0.2;
-                vec4 foamT = texture2D(foamTexture, vec2(foamUvX, foamUvY));
-                foamT = cutout((foamT * foamTDepth).r, foamCutout);
-                foamT *= mix(vec4(0.), foamT, fadeoutLerp);
-
-                // foam line
-                vec4 foamColor = waterColor + vec4(1.0, 1.0, 1.0, 0.5 * fadeoutLerp);
-                float foamDepth = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, 0.3, 2.0);
-                float foamShoreWidth = 0.1;
-                vec4 foamLineCutOut = saturate(cutout(foamDepth, foamShoreWidth) + foamT);
-                // vec4 foamLineCutOut = saturate(cutout(foamDepth, foamShoreWidth));
-                vec4 foam = foamLineCutOut * mix(col, foamColor, fadeoutLerp);
-                // vec4 col2 = col * ((vec4(1.0) - foamLineCutOut) + (vec4(1.0) - causticT)) * 0.5 + foam + caustic;
-                vec4 col2 = col * ((vec4(1.0) - foamLineCutOut)) + foam;
-
-                // gl_FragColor = vec4(col2);
-                vec4 base = texture2DProj( mirror, vUv );
-			    gl_FragColor = vec4( blendOverlay( base.rgb, col2.rgb ), col2.a);
-                // foam
-                // float diff = saturate( fragmentLinearEyeDepth - linearEyeDepth );
-                // if(diff > 0.){
-                //     vec2 channelA = texture2D( tDudv, vec2(0.25 * vPos.x + uTime * 0.04, 0.5 * vPos.z - uTime * 0.03) ).rg;
-                //     vec2 channelB = texture2D( tDudv, vec2(0.5 * vPos.x - uTime * 0.05, 0.35 * vPos.z + uTime * 0.04) ).rg;
-                //     vec2 displacement = (channelA + channelB) * 0.5;
-                //     displacement = ( ( displacement * 2.0 ) - 1.0 ) * 1.0;
-                //     diff += displacement.x;
-                //     gl_FragColor = mix( vec4(1.0, 1.0, 1.0, gl_FragColor.a), gl_FragColor, step( 0.1, diff ) );
-                // }
-                // #include <encodings_fragment>
-
-                vec3 sunColor = vec3(1.0, 1.0, 1.0);
-                vec3 sunDir = vec3(0.70707, 0.70707, 0.);
-
-                vec3 surfaceNormal = normalize( vNormal * vec3( 1.5, 1.0, 1.5 ) );
-                vec3 diffuseLight = vec3(0.0);
-                vec3 specularLight = vec3(0.0);
-                vec3 worldToEye = eye-vPos.xyz;
-                vec3 eyeDirection = normalize( worldToEye );
-                sunLight( surfaceNormal, eyeDirection, 100.0, 2.0, 0.5, diffuseLight, specularLight, sunColor, sunDir);
-                float distance = length(worldToEye);
-                float distortionScale = 3.;
-                vec2 distortion = surfaceNormal.xz * ( 0.001 + 1.0 / distance ) * distortionScale;
-                vec3 reflectionSample = vec3( texture2D( mirror, vUv.xy / vUv.w + distortion ) );
-                float theta = max( dot( eyeDirection, surfaceNormal ), 0.0 );
-                float rf0 = 0.3;
-                float reflectance = rf0 + ( 1.0 - rf0 ) * pow( ( 1.0 - theta ), 5.0 );
-                vec3 scatter = max( 0.0, dot( surfaceNormal, eyeDirection ) ) * col2.rgb;
-                vec3 albedo = mix( ( sunColor * diffuseLight * 0.3 + scatter ) * getShadowMask(), ( vec3( 0.1 ) + reflectionSample * 0.4 + reflectionSample * specularLight ), reflectance);
-                gl_FragColor = vec4( albedo, col2.a );
-                gl_FragColor.rgb += col2.rgb;
+                    vec3 sunColor = vec3(0.0, 0.0, 0.0);
+                    vec3 sunDir = vec3(0.70707, 0.70707, 0.);
+    
+                    vec3 surfaceNormal = normalize( vNormal * vec3( 1.5, 1.0, 1.5 ) );
+                    vec3 diffuseLight = vec3(0.0);
+                    vec3 specularLight = vec3(0.0);
+                    vec3 worldToEye = eye-vPos.xyz;
+                    vec3 eyeDirection = normalize( worldToEye );
+                    sunLight( surfaceNormal, eyeDirection, 100.0, 2.0, 0.5, diffuseLight, specularLight, sunColor, sunDir);
+                    float distance = length(worldToEye);
+                    float distortionScale = 0.1;
+                    vec2 distortion = surfaceNormal.xz * ( 0.001 + 1.0 / distance ) * distortionScale;
+                    vec3 reflectionSample = vec3( texture2D( refractionTexture, vUv.xy / vUv.w + distortion ) );
+                    float theta = max( dot( eyeDirection, surfaceNormal ), 0.0 );
+                    float rf0 = 0.3;
+                    float reflectance = rf0 + ( 1.0 - rf0 ) * pow( ( 1.0 - theta ), 5.0 );
+                    vec3 scatter = max( 0.0, dot( surfaceNormal, eyeDirection ) ) * waterColor;
+                    vec3 albedo = mix( ( sunColor * diffuseLight * 0.3 + scatter ) * getShadowMask(), ( vec3( 0.1 ) + reflectionSample * 0.4 + reflectionSample * specularLight ), reflectance);
+                    gl_FragColor = vec4( albedo, 1.0);
+                    gl_FragColor.rgb += waterColor;
+                }
                 #include <tonemapping_fragment>
                 #include <fog_fragment>
                 ${THREE.ShaderChunk.logdepthbuf_fragment}
