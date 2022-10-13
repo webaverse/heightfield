@@ -620,26 +620,6 @@ const bodyDropFragment = `\
     
     varying float vBroken;
     void main() {
-        
-        // vec4 splash = texture2D(
-        //     splashTexture,
-        //     vUv
-        // );
-        // if(splash.r > 0.1){
-        //     gl_FragColor = vec4(0.6, 0.6, 0.6, 1.0);
-        // }
-        // if(vPos.y < waterSurfacePos){
-        //     gl_FragColor.a = 0.;
-        // }
-
-        // float broken = abs( sin( 1.0 - vBroken ) ) - texture2D( noiseMap, vUv).g;
-        // if ( broken < 0.0001 ) discard;
-        // if(gl_FragColor.a > 0.){
-        //     gl_FragColor = vec4(0.6, 0.6, 0.6, 1.0);
-        // }
-        // else{
-        //     discard;
-        // }
         if (vId < dropCount - 0.5) {
             vec4 drop = texture2D(
                 dropTexture,
