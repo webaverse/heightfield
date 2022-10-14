@@ -1,21 +1,25 @@
 import * as THREE from 'three';
 import metaversefile from 'metaversefile';
 import {bufferSize, WORLD_BASE_HEIGHT, MIN_WORLD_HEIGHT, MAX_WORLD_HEIGHT} from '../constants.js';
-import WaterParticleEffect from '../water-particle/particle.js';
+import WaterParticleEffect from '../water-effect/particle.js';
 import _createWaterMaterial from './water-material.js';
+import WaterRenderer from '../water-effect/water-render.js';
 
 
 const {useProcGenManager, useGeometryBuffering, useLocalPlayer, useInternals, useRenderSettings} = metaversefile;
 const {BufferedMesh, GeometryAllocator} = useGeometryBuffering();
 const procGenManager = useProcGenManager();
 
-const mirrorInvisibleList = [];
-const particleEffect = new WaterParticleEffect(mirrorInvisibleList);
 const fakeMaterial = new THREE.MeshBasicMaterial({
   color: 0xffffff,
 });
 const {renderer, camera, scene} = useInternals();
 const renderSettings = useRenderSettings();
+
+const mirrorInvisibleList = [];
+const particleEffect = new WaterParticleEffect(mirrorInvisibleList);
+
+
 //
 const localVector3D = new THREE.Vector3();
 const localVector3D2 = new THREE.Vector3();
@@ -425,283 +429,41 @@ export class WaterMesh extends BufferedMesh {
       }
     }
   }
-  renderDepthTexture(){
-    renderer.setRenderTarget(this.depthRenderTarget);
-    renderer.clear();
-    this.visible = false;
-    scene.overrideMaterial = this.depthMaterial;
-
-    renderer.render(scene, camera);
-    renderer.setRenderTarget(null);
-
-    scene.overrideMaterial = null;
-    this.visible = true;
-  }
-  renderMirror(renderer, scene, camera) {
-    this.reflectorWorldPosition.setFromMatrixPosition(this.matrixWorld);
-    this.cameraWorldPosition.setFromMatrixPosition(camera.matrixWorld);
-
-    this.rotationMatrix.extractRotation(this.matrixWorld);
-
-    this.normal.set(0, 1, 0);
-    this.normal.applyMatrix4(this.rotationMatrix);
-
-    this.view.subVectors(this.reflectorWorldPosition, this.cameraWorldPosition);
-
-    // Avoid rendering when mirror is facing away
-
-    if (this.view.dot(this.normal) > 0) return;
-
-    this.view.reflect(this.normal).negate();
-    this.view.add(this.reflectorWorldPosition);
-
-    this.rotationMatrix.extractRotation(camera.matrixWorld);
-
-    this.lookAtPosition.set(0, 0, -1);
-    this.lookAtPosition.applyMatrix4(this.rotationMatrix);
-    this.lookAtPosition.add(this.cameraWorldPosition);
-
-    this.target.subVectors(this.reflectorWorldPosition, this.lookAtPosition);
-    this.target.reflect(this.normal).negate();
-    this.target.add(this.reflectorWorldPosition);
-
-    this.reflectionVirtualCamera.position.copy(this.view);
-    this.reflectionVirtualCamera.up.set(0, 1, 0);
-    this.reflectionVirtualCamera.up.applyMatrix4(this.rotationMatrix);
-    this.reflectionVirtualCamera.up.reflect(this.normal);
-    this.reflectionVirtualCamera.lookAt(this.target);
-
-    this.reflectionVirtualCamera.far = camera.far; // Used in WebGLBackground
-
-    this.reflectionVirtualCamera.updateMatrixWorld();
-    this.reflectionVirtualCamera.projectionMatrix.copy(camera.projectionMatrix);
-
-    // Update the texture matrix
-    this.textureMatrix.set(
-      0.5, 0.0, 0.0, 0.5,
-      0.0, 0.5, 0.0, 0.5,
-      0.0, 0.0, 0.5, 0.5,
-      0.0, 0.0, 0.0, 1.0
-    );
-    this.textureMatrix.multiply(this.reflectionVirtualCamera.projectionMatrix);
-    this.textureMatrix.multiply(this.reflectionVirtualCamera.matrixWorldInverse);
-    this.textureMatrix.multiply(this.matrixWorld);
-
-
-    // Now update projection matrix with new clip plane, implementing code from: http://www.terathon.com/code/oblique.html
-    // Paper explaining this technique: http://www.terathon.com/lengyel/Lengyel-Oblique.pdf
-    this.reflectorPlane.setFromNormalAndCoplanarPoint(this.normal, this.reflectorWorldPosition);
-    this.reflectorPlane.applyMatrix4(this.reflectionVirtualCamera.matrixWorldInverse);
-
-    this.clipPlane.set(
-      this.reflectorPlane.normal.x,
-      this.reflectorPlane.normal.y,
-      this.reflectorPlane.normal.z,
-      this.reflectorPlane.constant
-    );
-
-    const projectionMatrix = this.reflectionVirtualCamera.projectionMatrix;
-
-    this.q.x =
-      (Math.sign(this.clipPlane.x) + projectionMatrix.elements[8]) /
-      projectionMatrix.elements[0];
-    this.q.y =
-      (Math.sign(this.clipPlane.y) + projectionMatrix.elements[9]) /
-      projectionMatrix.elements[5];
-    this.q.z = -1.0;
-    this.q.w = (1.0 + projectionMatrix.elements[10]) / projectionMatrix.elements[14];
-
-    // Calculate the scaled plane vector
-    this.clipPlane.multiplyScalar(2.0 / this.clipPlane.dot(this.q));
-
-    // Replacing the third row of the projection matrix
-    const clipBias = 0.00001;
-    projectionMatrix.elements[2] = this.clipPlane.x;
-    projectionMatrix.elements[6] = this.clipPlane.y;
-    projectionMatrix.elements[10] = this.clipPlane.z + 1.0 - clipBias;
-    projectionMatrix.elements[14] = this.clipPlane.w;
-
-    this.eye.setFromMatrixPosition(camera.matrixWorld);
-    
-    // Render
-
-    // this.mirrorRenderTarget.texture.encoding = renderer.outputEncoding;
-    const localPlayer = useLocalPlayer();
-    if (localPlayer.avatar) {
-      localPlayer.avatar.app.visible = false;
-    }
-    for (const l of mirrorInvisibleList) {
-      l.visible = false;
-    }
-    this.visible = false;
-
-    const currentRenderTarget = renderer.getRenderTarget();
-
-    const currentXrEnabled = renderer.xr.enabled;
-    const currentShadowAutoUpdate = renderer.shadowMap.autoUpdate;
-
-    renderer.xr.enabled = false; // Avoid camera modification and recursion
-    renderer.shadowMap.autoUpdate = false; // Avoid re-computing shadows
-
-    renderer.setRenderTarget(this.mirrorRenderTarget);
-
-    renderer.state.buffers.depth.setMask(true); // make sure the depth buffer is writable so it can be properly cleared, see #18897
-    if (renderer.autoClear === false) renderer.clear();
-    renderer.render(scene, this.reflectionVirtualCamera);
-
-    renderer.xr.enabled = currentXrEnabled;
-    renderer.shadowMap.autoUpdate = currentShadowAutoUpdate;
-
-    renderer.setRenderTarget(currentRenderTarget);
-
-    // Restore viewport
-
-    const viewport = camera.viewport;
-
-    if (viewport !== undefined) {
-      renderer.state.viewport(viewport);
-    }
-
-    this.visible = true;
-    for (const l of mirrorInvisibleList) {
-      l.visible = true;
-    }
-    if (localPlayer.avatar) {
-      localPlayer.avatar.app.visible = true;
-    }
-  }
-  renderRefraction(renderer, scene, camera) {
-    // ensure refractors are rendered only once per frame
-
-    if ( camera.userData.refractor === true ) return;
-
-    this.refractorWorldPosition.setFromMatrixPosition(this.matrixWorld);
-    this.cameraWorldPosition.setFromMatrixPosition(camera.matrixWorld);
-
-    this.view.subVectors(this.refractorWorldPosition, this.cameraWorldPosition);
-    this.rotationMatrix.extractRotation(this.matrixWorld);
-    this.normal.set(0, -1, 0);
-    this.normal.applyMatrix4(this.rotationMatrix);
-
-    if (this.view.dot(this.normal) > 0) return;
-
-    this.matrixWorld.decompose(this.refractP, this.refractQ, this.refractS);
-    this.normal.set(0, -1, 0).applyQuaternion(this.refractQ).normalize();
-
-    // flip the normal because we want to cull everything above the plane
-    this.normal.negate();
-
-    this.refractorPlane.setFromNormalAndCoplanarPoint(this.normal, this.refractP);
-
-    this.textureMatrix.set(
-      0.5, 0.0, 0.0, 0.5,
-      0.0, 0.5, 0.0, 0.5,
-      0.0, 0.0, 0.5, 0.5,
-      0.0, 0.0, 0.0, 1.0
-    );
-    this.textureMatrix.multiply(camera.projectionMatrix);
-    this.textureMatrix.multiply(camera.matrixWorldInverse);
-    this.textureMatrix.multiply(this.matrixWorld);
-
-    this.refractionVirtualCamera.matrixWorld.copy(camera.matrixWorld);
-    this.refractionVirtualCamera.matrixWorldInverse.copy(this.refractionVirtualCamera.matrixWorld).invert();
-    this.refractionVirtualCamera.projectionMatrix.copy(camera.projectionMatrix);
-    this.refractionVirtualCamera.far = camera.far; // used in WebGLBackground
-
-    // The following code creates an oblique view frustum for clipping.
-    // see: Lengyel, Eric. “Oblique View Frustum Depth Projection and Clipping”.
-    // Journal of Game Development, Vol. 1, No. 2 (2005), Charles River Media, pp. 5–16
-
-    this.refractionClipPlane.copy(this.refractorPlane);
-    this.refractionClipPlane.applyMatrix4(this.refractionVirtualCamera.matrixWorldInverse);
-
-    this.clipVector.set(this.refractionClipPlane.normal.x, this.refractionClipPlane.normal.y, this.refractionClipPlane.normal.z, this.refractionClipPlane.constant);
-
-    // calculate the clip-space corner point opposite the clipping plane and
-    // transform it into camera space by multiplying it by the inverse of the projection matrix
-
-    const projectionMatrix = this.refractionVirtualCamera.projectionMatrix;
-
-    this.q.x = (Math.sign(this.clipVector.x) + projectionMatrix.elements[8]) / projectionMatrix.elements[0];
-    this.q.y = (Math.sign(this.clipVector.y) + projectionMatrix.elements[9]) / projectionMatrix.elements[5];
-    this.q.z = - 1.0;
-    this.q.w = (1.0 + projectionMatrix.elements[10]) / projectionMatrix.elements[14];
-
-    // calculate the scaled plane vector
-
-    this.clipVector.multiplyScalar(2.0 / this.clipVector.dot(this.q));
-
-    // replacing the third row of the projection matrix
-
-    projectionMatrix.elements[2] = this.clipVector.x;
-    projectionMatrix.elements[6] = this.clipVector.y;
-    projectionMatrix.elements[10] = this.clipVector.z + 1.0 - 0.00001;
-    projectionMatrix.elements[14] = this.clipVector.w;
-
-    for (const l of mirrorInvisibleList) {
-      l.visible = false;
-    }
-    this.visible = false;
-
-    const currentRenderTarget = renderer.getRenderTarget();
-    const currentXrEnabled = renderer.xr.enabled;
-    const currentShadowAutoUpdate = renderer.shadowMap.autoUpdate;
-
-    renderer.xr.enabled = false; // avoid camera modification
-    renderer.shadowMap.autoUpdate = false; // avoid re-computing shadows
-
-    renderer.setRenderTarget(this.refractionRenderTarget);
-    if (renderer.autoClear === false) renderer.clear();
-    renderer.render(scene, this.refractionVirtualCamera);
-
-    renderer.xr.enabled = currentXrEnabled;
-    renderer.shadowMap.autoUpdate = currentShadowAutoUpdate;
-    renderer.setRenderTarget(currentRenderTarget);
-
-    // restore viewport
-
-    const viewport = camera.viewport;
-
-    if (viewport !== undefined) {
-
-      renderer.state.viewport(viewport);
-
-    }
-    for (const l of mirrorInvisibleList) {
-      l.visible = true;
-    }
-    this.visible = true;
-  }
   onBeforeRender(renderer, scene, camera) {
-    this.renderDepthTexture();
+    // this.renderDepthTexture();
+    this.waterRenderer && this.waterRenderer.renderDepthTexture();
     if (this.underWater) {
-      this.renderRefraction(renderer, scene, camera);
+      this.waterRenderer && this.waterRenderer.renderRefraction(renderer, scene, camera);
     }
     else {
-      this.renderMirror(renderer, scene, camera);
+      this.waterRenderer && this.waterRenderer.renderMirror(renderer, scene, camera);
     }
   }
   
   initSetUp() {
-    this.material.uniforms.refractionTexture.value = this.refractionRenderTarget.texture;
-    this.material.uniforms.mirror.value = this.mirrorRenderTarget.texture;
-    this.material.uniforms.textureMatrix.value = this.textureMatrix;
-    this.material.uniforms.eye.value = this.eye;
+    // render target texture setup
+    this.waterRenderer = new WaterRenderer(mirrorInvisibleList, renderer, scene, camera, this);
+    this.material.uniforms.tDepth.value = this.waterRenderer.depthRenderTarget.texture;
+    this.material.uniforms.refractionTexture.value = this.waterRenderer.refractionRenderTarget.texture;
+    this.material.uniforms.mirror.value = this.waterRenderer.mirrorRenderTarget.texture;
+    this.material.uniforms.textureMatrix.value = this.waterRenderer.textureMatrix;
+    this.material.uniforms.eye.value = this.waterRenderer.eye;
+
     this.material.uniforms.cameraNear.value = camera.near;
     this.material.uniforms.cameraFar.value = camera.far;
     this.material.uniforms.resolution.value.set(
         window.innerWidth * window.devicePixelRatio,
         window.innerHeight * window.devicePixelRatio
     );
-    this.material.uniforms.tDepth.value = this.depthRenderTarget.texture;
-
+    
+    // foam texture
     const baseUrl = import.meta.url.replace(/(\/)[^\/\\]*$/, '$1');
     const textureLoader = new THREE.TextureLoader();
-    const foamTexture = textureLoader.load(`${baseUrl}../water-particle/assets/textures/Trail36.png`);
+    const foamTexture = textureLoader.load(`${baseUrl}../water-effect/assets/textures/Trail36.png`);
     foamTexture.wrapS = foamTexture.wrapT = THREE.RepeatWrapping;
     this.material.uniforms.foamTexture.value = foamTexture;
 
-
+    // underwater mask
     const geometry = new THREE.PlaneGeometry( 2, 2 );
     const material = new THREE.MeshBasicMaterial( {color: 0x097F89, side: THREE.DoubleSide, transparent: true, opacity: 0.5, depthWrite: false} );
     this.underWaterMask = new THREE.Mesh(geometry, material);
@@ -733,8 +495,6 @@ export class WaterMesh extends BufferedMesh {
     this.material.uniforms.uTime.value = performance.now() / 1000;
     this.material.uniforms.playerPos.value.copy(localPlayer.position);
     this.material.uniforms.cameraInWater.value = this.underWater;
-    
-    
   }
   
   
