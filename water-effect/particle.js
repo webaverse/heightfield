@@ -813,7 +813,7 @@ class WaterParticleEffect {
               scalesAttribute.setXYZ(i, 1, 3 + Math.random() * 2, 1);
               count ++;
             }
-            opacityAttribute.setX(i, opacityAttribute.getX(i) - 0.01);
+            opacityAttribute.setX(i, opacityAttribute.getX(i) - 0.015);
             positionsAttribute.setY(
               i,
               positionsAttribute.getY(i) - 0.0198
