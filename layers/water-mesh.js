@@ -438,9 +438,9 @@ export class WaterMesh extends BufferedMesh {
   
   initSetUp() {
     // render target texture setup
-    const mirrorInvisibleList = [];
-    this.particleEffect = new WaterParticleEffect(mirrorInvisibleList);
-    this.waterRenderer = new WaterRenderer(mirrorInvisibleList, renderer, scene, camera, this);
+    const invisibleList = [];
+    this.particleEffect = new WaterParticleEffect(invisibleList);
+    this.waterRenderer = new WaterRenderer(invisibleList, renderer, scene, camera, this);
     this.material.uniforms.tDepth.value = this.waterRenderer.depthRenderTarget.texture;
     this.material.uniforms.refractionTexture.value = this.waterRenderer.refractionRenderTarget.texture;
     this.material.uniforms.mirror.value = this.waterRenderer.mirrorRenderTarget.texture;

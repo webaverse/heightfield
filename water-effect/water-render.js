@@ -3,9 +3,9 @@ import * as THREE from 'three';
 const {useLocalPlayer} = metaversefile;
 
 class WaterRenderer {
-  constructor(mirrorInvisibleList, renderer, scene, camera, water) {
+  constructor(invisibleList, renderer, scene, camera, water) {
 
-    this.mirrorInvisibleList = mirrorInvisibleList;
+    this.invisibleList = invisibleList;
     this.renderer = renderer;
     this.scene = scene;
     this.camera = camera;
@@ -169,7 +169,7 @@ class WaterRenderer {
     if (localPlayer.avatar) {
       localPlayer.avatar.app.visible = false;
     }
-    for (const l of this.mirrorInvisibleList) {
+    for (const l of this.invisibleList) {
       l.visible = false;
     }
     this.water.visible = false;
@@ -202,7 +202,7 @@ class WaterRenderer {
     }
 
     this.water.visible = true;
-    for (const l of this.mirrorInvisibleList) {
+    for (const l of this.invisibleList) {
       l.visible = true;
     }
     if (localPlayer.avatar) {
@@ -277,7 +277,7 @@ class WaterRenderer {
     projectionMatrix.elements[10] = this.clipVector.z + 1.0 - 0.00001;
     projectionMatrix.elements[14] = this.clipVector.w;
 
-    for (const l of this.mirrorInvisibleList) {
+    for (const l of this.invisibleList) {
       l.visible = false;
     }
     this.water.visible = false;
@@ -306,7 +306,7 @@ class WaterRenderer {
       renderer.state.viewport(viewport);
 
     }
-    for (const l of this.mirrorInvisibleList) {
+    for (const l of this.invisibleList) {
       l.visible = true;
     }
     this.water.visible = true;
