@@ -24,6 +24,16 @@ const localQuaternion = new THREE.Quaternion();
 const localVector = new THREE.Vector3();
 //
 
+// constants
+const normalDamping = 1;
+const maxDamping = 4.2;
+const dampingRate = 1.03;
+const BREASTSTROKE = 'breaststroke';
+
+const getHashKey = (x, y) => {
+  return ((x & 0xFFF) << 20) | ((y & 0xFFF) << 8);
+}
+
 export class WaterMesh extends BufferedMesh {
   constructor({
     instance,
@@ -265,7 +275,7 @@ export class WaterMesh extends BufferedMesh {
           );
           this.physics.disableGeometryQueries(physicsObject); // disable each physicsObject
           this.physicsObjectsMap.set(key, physicsObject);
-          const chunkKey = chunk.min.x + ',' + chunk.min.y;
+          const chunkKey = getHashKey(chunk.min.x, chunk.min.y);
           this.chunkPhysicObjcetMap.set(chunkKey, physicsObject); // use string of chunk.min as a key to map each physicsObject
           this.waterHeightMap.set(chunkKey, waterGeometry.positions[1]); // use string of chunk.min as a key to map the posY of each chunk
         }
@@ -299,7 +309,7 @@ export class WaterMesh extends BufferedMesh {
       }
     }
     {
-      const chunkKey = chunk.min.x + ',' + chunk.min.y;
+      const chunkKey = getHashKey(chunk.min.x, chunk.min.y);
       this.chunkPhysicObjcetMap.delete(chunkKey);
       this.waterHeightMap.delete(chunkKey);
     }
@@ -314,7 +324,7 @@ export class WaterMesh extends BufferedMesh {
     this.physics.enableGeometryQueries(chunkPhysicObject);
     if (player.avatar) {
       let collisionIds;
-      const height = player.avatar.height * 0.9;
+      const height = player.avatar.height;
       const width = player.avatar.shoulderWidth
       if (player.position.y > waterSurfaceHeight) {
         collisionIds = this.physics.overlapBox(width, height, width, player.position, player.quaternion).objectIds;
@@ -337,14 +347,14 @@ export class WaterMesh extends BufferedMesh {
     if (this.lastSwimmingHand !== player.avatarCharacterSfx.currentSwimmingHand) {
       this.lastSwimmingHand = player.avatarCharacterSfx.currentSwimmingHand;
       if (player.avatarCharacterSfx.currentSwimmingHand !== null) {
-        return 1;
+        return normalDamping;
       }
     }
-    if (this.swimDamping < 4.2 && this.lastSwimmingHand) {
-      return this.swimDamping *= 1.03;
+    if (this.swimDamping < maxDamping && this.lastSwimmingHand) {
+      return this.swimDamping *= dampingRate;
     }
     else {
-      return 4.2;
+      return maxDamping;
     }
   }
   handleSwimAction(contactWater, player, waterSurfaceHeight) {
@@ -352,18 +362,20 @@ export class WaterMesh extends BufferedMesh {
     const hasSwim = !!swimAction;
     if (contactWater) {
       // this.material.color.setHex( 0x78c7e3 ); // for testing
-      if (waterSurfaceHeight >= player.position.y - player.avatar.height + player.avatar.height * 0.75) { // if water is higher than player's neck
+      const characterNeckHeight = player.avatar.height * 0.05;
+      const characterHeadHeight = player.avatar.height * 0.2;
+      if (waterSurfaceHeight >= player.position.y - (characterNeckHeight + characterHeadHeight)) { // if water is higher than player's neck
         if (!hasSwim) {
           const swimAction = {
               type: 'swim',
               onSurface: false,
-              swimDamping: 1,
-              animationType: 'breaststroke'
+              swimDamping: normalDamping,
+              animationType: BREASTSTROKE
           };
           player.setControlAction(swimAction);
         }
         // check whether player is swimming on the water surface
-        if (waterSurfaceHeight < player.position.y - player.avatar.height + player.avatar.height * 0.8) {
+        if (waterSurfaceHeight < player.position.y - characterHeadHeight) {
           if (hasSwim && !swimAction.onSurface) {
             swimAction.onSurface = true;
           }
@@ -389,11 +401,11 @@ export class WaterMesh extends BufferedMesh {
 
     // handel swimming damping.
     if (hasSwim) {
-      if (swimAction.animationType === 'breaststroke') {
+      if (swimAction.animationType === BREASTSTROKE) {
         this.swimDamping = this.getSwimDamping(player);
       }
       else {
-        this.swimDamping = 1;
+        this.swimDamping = normalDamping;
       }
       swimAction.swimDamping = this.swimDamping;
     }   
@@ -457,7 +469,7 @@ export class WaterMesh extends BufferedMesh {
     // foam texture
     const baseUrl = import.meta.url.replace(/(\/)[^\/\\]*$/, '$1');
     const textureLoader = new THREE.TextureLoader();
-    const foamTexture = textureLoader.load(`${baseUrl}../water-effect/assets/textures/Trail36.png`);
+    const foamTexture = textureLoader.load(`${baseUrl}../water-effect/assets/textures/Waves10.png`);
     foamTexture.wrapS = foamTexture.wrapT = THREE.RepeatWrapping;
     this.material.uniforms.foamTexture.value = foamTexture;
 
@@ -470,7 +482,7 @@ export class WaterMesh extends BufferedMesh {
   }
   update() {
     const localPlayer = useLocalPlayer();
-    const lastUpdateCoordKey = this.lastUpdateCoord.x + ',' + this.lastUpdateCoord.y; 
+    const lastUpdateCoordKey = getHashKey(this.lastUpdateCoord.x, this.lastUpdateCoord.y); 
     const currentChunkPhysicObject = this.chunkPhysicObjcetMap.get(lastUpdateCoordKey); // use lodTracker.lastUpdateCoord as a key to check which chunk player currently at 
     let currentWaterSurfaceHeight = 0;
     let contactWater = false;

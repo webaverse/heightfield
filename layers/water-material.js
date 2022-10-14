@@ -202,23 +202,23 @@ const _createWaterMaterial = () => {
                     // causticT = cutout(causticT.r * causticT2.r, causticCutout);
                     // vec4 caustic = causticT * causticColor;
     
-                    float fadeoutDistance = 20.;
-                    float fadeoutLerp = saturate(distance(playerPos, vPos) / fadeoutDistance);
+                    float fadeoutDistance = 15.;
+                    float fadeoutLerp = pow(saturate(distance(playerPos, vPos) / fadeoutDistance), 3.);
                     
                     float foamCutout = 0.25;
-                    float foamTDepthScale = 2.0;
-                    float foamTDepthFalloff = 2.0;
-                    float foamAmount = 1.;
+                    float foamTDepthScale = 4.0;
+                    float foamTDepthFalloff = 4.0;
                     float foamTDepth = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, foamTDepthScale, foamTDepthFalloff);
-                    float foamUvY = vPos.z * 0.05;
-                    float foamUvX = foamTDepth * foamAmount + uTime * 0.2;
-                    vec4 foamT = texture2D(foamTexture, vec2(foamUvX, foamUvY));
+                    float foamAmount = 1.5 * pow(foamTDepth, 1.0);
+                    float foamUvY = vPos.x * 0.09;
+                    float foamUvX = foamTDepth * foamAmount + uTime * 0.3;
+                    vec4 foamT = texture2D(foamTexture, vec2(foamUvY, foamUvX));
                     foamT = cutout((foamT * foamTDepth).r, foamCutout);
                     foamT *= mix(vec4(0.), foamT, fadeoutLerp);
     
                     // foam line
-                    vec4 foamColor = waterColor + vec4(1.0, 1.0, 1.0, 0.5 * fadeoutLerp);
-                    float foamDepth = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, 0.3, 2.0);
+                    vec4 foamColor = vec4(1.0, 1.0, 1.0, 0.8 * fadeoutLerp);
+                    float foamDepth = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, 0.1, 2.0);
                     float foamShoreWidth = 0.1;
                     vec4 foamLineCutOut = saturate(cutout(foamDepth, foamShoreWidth) + foamT);
                     // vec4 foamLineCutOut = saturate(cutout(foamDepth, foamShoreWidth));
