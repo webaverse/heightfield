@@ -16,10 +16,6 @@ const fakeMaterial = new THREE.MeshBasicMaterial({
 const {renderer, camera, scene} = useInternals();
 const renderSettings = useRenderSettings();
 
-const mirrorInvisibleList = [];
-const particleEffect = new WaterParticleEffect(mirrorInvisibleList);
-
-
 //
 const localVector3D = new THREE.Vector3();
 const localVector3D2 = new THREE.Vector3();
@@ -403,10 +399,10 @@ export class WaterMesh extends BufferedMesh {
     }   
   }
   updateParticle(contactWater, localPlayer, waterSurfaceHeight) {
-    particleEffect.update();
-    particleEffect.contactWater = contactWater;
-    particleEffect.player = localPlayer;
-    particleEffect.waterSurfaceHeight = waterSurfaceHeight;
+    this.particleEffect.update();
+    this.particleEffect.contactWater = contactWater;
+    this.particleEffect.player = localPlayer;
+    this.particleEffect.waterSurfaceHeight = waterSurfaceHeight;
   };
   updateUnderWater(underWater) {
     if(renderSettings.findRenderSettings(scene)){
@@ -442,6 +438,8 @@ export class WaterMesh extends BufferedMesh {
   
   initSetUp() {
     // render target texture setup
+    const mirrorInvisibleList = [];
+    this.particleEffect = new WaterParticleEffect(mirrorInvisibleList);
     this.waterRenderer = new WaterRenderer(mirrorInvisibleList, renderer, scene, camera, this);
     this.material.uniforms.tDepth.value = this.waterRenderer.depthRenderTarget.texture;
     this.material.uniforms.refractionTexture.value = this.waterRenderer.refractionRenderTarget.texture;
