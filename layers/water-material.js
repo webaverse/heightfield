@@ -211,7 +211,7 @@ const _createWaterMaterial = () => {
                     float foamTDepth = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, foamTDepthScale, foamTDepthFalloff);
                     float foamAmount = 1.3 * pow(foamTDepth, 1.0);
                     float foamUvY = vPos.x * 0.07;
-                    float foamUvX = foamTDepth * foamAmount + uTime * 0.3;
+                    float foamUvX = foamTDepth * foamAmount - uTime * 0.3;
                     vec4 foamT = texture2D(foamTexture, vec2(foamUvY, foamUvX));
                     foamT = cutout((foamT * foamTDepth).r, foamCutout);
                     foamT *= mix(vec4(0.), foamT, fadeoutLerp);

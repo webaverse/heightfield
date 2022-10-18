@@ -616,40 +616,38 @@ class WaterParticleEffect {
 
     const _handleFreestyleSplash = () => {
       if (this.freestyleSplash) {
-        this.freestyleSplashGroup.rotation.copy(this.player.rotation);
         this.freestyleSplashGroup.position.copy(this.player.position);
-        this.freestyleSplashGroup.position.x += this.playerDir.x * 0.55;
-        this.freestyleSplashGroup.position.y = this.waterSurfaceHeight - 0.02;
-        this.freestyleSplashGroup.position.z += this.playerDir.z * 0.55;
-          
+        this.freestyleSplashGroup.position.y = 0;
+        this.freestyleSplashGroup.rotation.copy(this.player.rotation);
+
         const particleCount = this.freestyleSplash.info.particleCount;
         const positionsAttribute = this.freestyleSplash.geometry.getAttribute('positions');
-        const scalesAttribute = this.freestyleSplash.geometry.getAttribute('scales');
         const brokenAttribute = this.freestyleSplash.geometry.getAttribute('broken');
-        
+        const scalesAttribute = this.freestyleSplash.geometry.getAttribute('scales');
         for (let i = 0; i < particleCount; i ++) {
-          if (brokenAttribute.getX(i) < 1) {
-            if (this.currentSpeed > 0.1) {
-              brokenAttribute.setX(i, brokenAttribute.getX(i) * 1.07);
-            }
-            else {
-              brokenAttribute.setX(i, brokenAttribute.getX(i) * 1.1);
-            } 
-              
-            scalesAttribute.setY(i, scalesAttribute.getY(i) * 1.04);
-            positionsAttribute.setXYZ(
-              i,
-              positionsAttribute.getX(i),
-              positionsAttribute.getY(i) + 0.005,
-              positionsAttribute.getZ(i)
-            ) 
-          } 
+          if (brokenAttribute.getX(i) < 1 && scalesAttribute.getY(i) > this.freestyleSplash.info.initialScale[i].y * 1.5) {
+            scalesAttribute.setXYZ(
+              i, 
+              scalesAttribute.getX(i) * 1.03, 
+              scalesAttribute.getY(i) * 1.04, 
+              scalesAttribute.getZ(i) * 1.03
+            )
+            positionsAttribute.setY(i, positionsAttribute.getY(i) - 0.008);
+            positionsAttribute.setZ(i, positionsAttribute.getZ(i) + 0.003);
+            brokenAttribute.setX(i, brokenAttribute.getX(i) + 0.025);
+          }
+          else {
+            scalesAttribute.setXYZ(
+              i, 
+              scalesAttribute.getX(i) * 1.1, 
+              scalesAttribute.getY(i) * 1.15, 
+              scalesAttribute.getZ(i) * 1.1
+            )
+          }
         }
-        positionsAttribute.needsUpdate = true;
         scalesAttribute.needsUpdate = true;
+        positionsAttribute.needsUpdate = true;
         brokenAttribute.needsUpdate = true;
-        
-        this.freestyleSplash.material.uniforms.uTime.value = timestamp / 1000;
         this.freestyleSplash.material.uniforms.waterSurfacePos.value = this.waterSurfaceHeight;
       }
       else {
@@ -667,30 +665,25 @@ class WaterParticleEffect {
       const brokenAttribute = this.freestyleSplash.geometry.getAttribute('broken');
       const rotationAttribute = this.freestyleSplash.geometry.getAttribute('rotation');
       let emitCount = 0;
-      let maxEmit = 20;
+      let maxEmit = 2;
       for (let i = 0; i < particleCount; i ++) {
         if (
           (brokenAttribute.getX(i) >= 1 || brokenAttribute.getX(i) <= 0)
           && emitCount < maxEmit
         ) {
             const right = this.player.avatarCharacterSfx.currentSwimmingHand === 'right' ? 1 : -1;
-            brokenAttribute.setX(i, 0.18 + Math.random() * 0.2);
-            scalesAttribute.setXY(i, 2. + Math.random() * 1.5, 1. + Math.random() * 2.5);
-            const theta = 2. * Math.PI * emitCount / maxEmit;
+            const rand = 0.125 * Math.random() + 0.125;
+            const rand2 = 0.5 * Math.random() + 0.5;
+            this.freestyleSplash.info.initialScale[i].set(rand, rand2, rand); 
+            scalesAttribute.setXYZ(i, rand, rand2, rand);
             positionsAttribute.setXYZ(
               i,
-              (0.25 + Math.random() * 0.05) * right + Math.sin(theta) * 0.1,
-              0,
-              Math.cos(theta) * 0.1
-            ) 
-            const n = Math.cos(theta) > 0 ? 1 : -1;
-            const angle = Math.PI / 8;
-            rotationAttribute.setXYZ(
-              i,
-              -angle * Math.cos(theta),
-              -Math.sin(theta) * n * (Math.PI / 2),
-              -angle * -Math.sin(theta)
-            ) 
+              0.3 * right,
+              0.62,
+              0.1
+            )
+            rotationAttribute.setX(i, Math.random() * 2 * Math.PI);
+            brokenAttribute.setX(i, Math.random() * 0.25);
             emitCount ++;
           }
       }
@@ -727,15 +720,15 @@ class WaterParticleEffect {
           );
         }
       }
-      else if (swimAction.animationType === 'freestyle'){
+      else if (swimAction.animationType === 'freestyle') {
         if (this.player.avatarCharacterSfx.currentSwimmingHand && this.lastSwimmingHand !== this.player.avatarCharacterSfx.currentSwimmingHand) {
           const right = this.player.avatarCharacterSfx.currentSwimmingHand === 'right' ? 1 : -1;
           localVector5.set(0, -0.001, 0);
           localVector6.set(0.03, 0.013, 0.03);
           _playLittleSplash(
-            this.playerDir.x * 0.62 + localVector4.x * 0.25 * right, 
+            this.playerDir.x * 0.5 + localVector4.x * 0.25 * right, 
             0, 
-            this.playerDir.z * 0.62 + localVector4.z * 0.25 * right,
+            this.playerDir.z * 0.5 + localVector4.z * 0.25 * right,
             5,
             1.3 + Math.random() * 0.2,
             localVector6,

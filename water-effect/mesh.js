@@ -23,7 +23,7 @@ const splashTexture2 = loadTexture(`./assets/textures/Splat3.png`, false);
 const splashTexture3 = loadTexture(`./assets/textures/splash3.png`, false);
 const bubbleTexture2 = loadTexture(`./assets/textures/Bubble2.png`, false);
 const dropTexture = loadTexture(`./assets/textures/drop.png`, false);
-
+const circleTexture = loadTexture(`./assets/textures/Circle133.png`, false);
 
 
 
@@ -429,42 +429,59 @@ const getLittleSplash = () => {
 const getFreestyleSplash = () => {
     const group = new THREE.Group();
     const freeStyleGroup = new THREE.Group();
-    const particleCount = 50;
-    const attributeSpecs = [];
-    attributeSpecs.push({name: 'broken', itemSize: 1});
-    attributeSpecs.push({name: 'scales', itemSize: 2});
-    attributeSpecs.push({name: 'rotation', itemSize: 3});
-    const geometry2 = new THREE.PlaneGeometry(0.08, 0.08);
-    const geometry = _getGeometry(geometry2, attributeSpecs, particleCount);
-    const material= new THREE.ShaderMaterial({
-        uniforms: {
-            uTime: {
-                value:0
-            },
-            splashTexture: {
-                value: splashTexture3,
-            },
-            waterSurfacePos: {
-                value: 0,
-            },
-            noiseMap:{
-                value: noiseMap
-            },
-        },
-        vertexShader: freestyleSplashVertex,
-        fragmentShader: freestyleSplashFragment,
-        side: THREE.DoubleSide,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-        transparent: true,
-    });
-    const divingHigherSplash = new THREE.InstancedMesh(geometry, material, particleCount);
-    divingHigherSplash.info = {
-        particleCount: particleCount,
-    }
-    group.add(divingHigherSplash);
-    group.rotation.x = Math.PI / 2.1;
-    freeStyleGroup.add(group)
+    const particleCount = 8;
+    (async () => {
+        const u = `${baseUrl}./assets/dome.glb`;
+        const splashApp = await new Promise((accept, reject) => {
+            const {gltfLoader} = useLoaders();
+            gltfLoader.load(u, accept, function onprogress() {}, reject);
+            
+        });
+
+        splashApp.scene.traverse(o => {
+            if (o.isMesh) {
+                const splashGeometry = o.geometry;
+                const attributeSpecs = [];
+                attributeSpecs.push({name: 'broken', itemSize: 1});
+                attributeSpecs.push({name: 'scales', itemSize: 3});
+                attributeSpecs.push({name: 'rotation', itemSize: 1});
+                const geometry = _getGeometry(splashGeometry, attributeSpecs, particleCount);
+
+                const material= new THREE.ShaderMaterial({
+                    uniforms: {
+                        waterSurfacePos: {
+                            value: 0
+                        },
+                        circleTexture: {
+                            value: circleTexture
+                        },
+                        noiseMap: {
+                            value: noiseMap
+                        },
+                    },
+                    vertexShader: freestyleSplashVertex,
+                    fragmentShader: freestyleSplashFragment,
+                    side: THREE.DoubleSide,
+                    depthWrite: false,
+                    blending: THREE.AdditiveBlending,
+                    transparent: true,
+                });
+
+                const splash = new THREE.InstancedMesh(geometry, material, particleCount);
+                splash.info = {
+                    particleCount: particleCount,
+                    initialScale: [particleCount],
+                }
+                for (let i = 0; i < particleCount; i ++) {
+                    splash.info.initialScale[i] = new THREE.Vector3();
+                }
+                group.add(splash);
+                group.rotation.x = -Math.PI / 1.8;
+                freeStyleGroup.add(group);
+            }
+        });
+    })();
+    
     return freeStyleGroup;
 }
 const getBodyDrop = () => {

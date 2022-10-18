@@ -29,6 +29,13 @@ const normalDamping = 1;
 const maxDamping = 4.2;
 const dampingRate = 1.03;
 const BREASTSTROKE = 'breaststroke';
+const waterHeight = 0;
+const initialSwimAction = {
+  type: 'swim',
+  onSurface: false,
+  swimDamping: normalDamping,
+  animationType: BREASTSTROKE
+};
 
 const getHashKey = (x, y) => {
   return ((x & 0xFFF) << 20) | ((y & 0xFFF) << 8);
@@ -81,7 +88,6 @@ export class WaterMesh extends BufferedMesh {
     this.physics = physics;
     this.physicsObjectsMap = new Map();
     this.chunkPhysicObjcetMap = new Map();
-    this.waterHeightMap = new Map();
     this.lastUpdateCoord = new THREE.Vector2();
 
     this.lastSwimmingHand = null;
@@ -277,7 +283,6 @@ export class WaterMesh extends BufferedMesh {
           this.physicsObjectsMap.set(key, physicsObject);
           const chunkKey = getHashKey(chunk.min.x, chunk.min.y);
           this.chunkPhysicObjcetMap.set(chunkKey, physicsObject); // use string of chunk.min as a key to map each physicsObject
-          this.waterHeightMap.set(chunkKey, waterGeometry.positions[1]); // use string of chunk.min as a key to map the posY of each chunk
         }
       };
       if (waterGeometry.indices.length !== 0) {
@@ -311,7 +316,6 @@ export class WaterMesh extends BufferedMesh {
     {
       const chunkKey = getHashKey(chunk.min.x, chunk.min.y);
       this.chunkPhysicObjcetMap.delete(chunkKey);
-      this.waterHeightMap.delete(chunkKey);
     }
     {
       const task = this.gpuTasks.get(key);
@@ -357,39 +361,27 @@ export class WaterMesh extends BufferedMesh {
       return maxDamping;
     }
   }
+  setOnSurfaceAction(swimAction, onSurface) {
+    swimAction.onSurface = onSurface;
+  }
   handleSwimAction(contactWater, player, waterSurfaceHeight) {
     const swimAction = player.getAction('swim');
     const hasSwim = !!swimAction;
     if (contactWater) {
       // this.material.color.setHex( 0x78c7e3 ); // for testing
-      const characterNeckHeight = player.avatar.height * 0.05;
-      const characterHeadHeight = player.avatar.height * 0.2;
-      if (waterSurfaceHeight >= player.position.y - (characterNeckHeight + characterHeadHeight)) { // if water is higher than player's neck
+      const addSwimAction = waterSurfaceHeight >= player.position.y - player.avatar.height * 0.25; // if waterheight is higher than 75% player's height, then add swim action 
+      if (addSwimAction) {
         if (!hasSwim) {
-          const swimAction = {
-              type: 'swim',
-              onSurface: false,
-              swimDamping: normalDamping,
-              animationType: BREASTSTROKE
-          };
-          player.setControlAction(swimAction);
+          player.setControlAction(initialSwimAction);
         }
-        // check whether player is swimming on the water surface
-        if (waterSurfaceHeight < player.position.y - characterHeadHeight) {
-          if (hasSwim && !swimAction.onSurface) {
-            swimAction.onSurface = true;
-          }
-        }
-        else {
-          if (hasSwim && swimAction.onSurface) {
-            swimAction.onSurface = false;
-          }
-        }
+       // check whether player is swimming on the water surface
+       const addOnSurface = waterSurfaceHeight < player.position.y - player.avatar.height * 0.2; // if waterheight is lower than 80% player's height, then add onSurface action 
+       hasSwim && this.setOnSurfaceAction(swimAction, addOnSurface);
       }
       else{ // shallow water
-          if (hasSwim) {
-            player.removeAction('swim');
-          }
+        if (hasSwim) {
+          player.removeAction('swim');
+        }
       }  
     } 
     else {
@@ -469,7 +461,7 @@ export class WaterMesh extends BufferedMesh {
     // foam texture
     const baseUrl = import.meta.url.replace(/(\/)[^\/\\]*$/, '$1');
     const textureLoader = new THREE.TextureLoader();
-    const foamTexture = textureLoader.load(`${baseUrl}../water-effect/assets/textures/Waves10.png`);
+    const foamTexture = textureLoader.load(`${baseUrl}../water-effect/assets/textures/Waves100.png`);
     foamTexture.wrapS = foamTexture.wrapT = THREE.RepeatWrapping;
     this.material.uniforms.foamTexture.value = foamTexture;
 
@@ -484,20 +476,18 @@ export class WaterMesh extends BufferedMesh {
     const localPlayer = useLocalPlayer();
     const lastUpdateCoordKey = getHashKey(this.lastUpdateCoord.x, this.lastUpdateCoord.y); 
     const currentChunkPhysicObject = this.chunkPhysicObjcetMap.get(lastUpdateCoordKey); // use lodTracker.lastUpdateCoord as a key to check which chunk player currently at 
-    let currentWaterSurfaceHeight = 0;
     let contactWater = false;
     // handel water physic and swimming action if we get the physicObject of the current chunk
     if (currentChunkPhysicObject) { 
-      currentWaterSurfaceHeight = this.waterHeightMap.get(lastUpdateCoordKey); // use lodTracker.lastUpdateCoord as a key to check the water height of the current chunk
-      contactWater = this.checkWaterContact(currentChunkPhysicObject, localPlayer, currentWaterSurfaceHeight); // check whether player contact the water
+      contactWater = this.checkWaterContact(currentChunkPhysicObject, localPlayer, waterHeight); // check whether player contact the water
 
       // handle swimming action
-      this.handleSwimAction(contactWater, localPlayer, currentWaterSurfaceHeight);
+      this.handleSwimAction(contactWater, localPlayer, waterHeight);
     }
-    this.underWater = camera.position.y - 0.03 < currentWaterSurfaceHeight;
+    this.underWater = camera.position.y - 0.03 < waterHeight;
 
     // handle particle
-    this.updateParticle(contactWater, localPlayer, currentWaterSurfaceHeight + 0.01);
+    this.updateParticle(contactWater, localPlayer, waterHeight + 0.01);
 
     // underWater
     this.updateUnderWater(this.underWater);
