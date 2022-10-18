@@ -276,7 +276,7 @@ const swimmingRippleSplashFragment = `\
     float radialNoise(vec2 uv){ 
         uv.y -= rSpeed * uTime;
         const int octaves = 2;
-        const float scale = .05;  
+        const float scale = .09;  
         float power = 2.2;
         float total = 0.1;
         for(int i = 0; i < octaves; i++){
