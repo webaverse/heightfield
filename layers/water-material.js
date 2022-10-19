@@ -212,7 +212,7 @@ const _createWaterMaterial = () => {
                     // causticT = cutout(causticT.r * causticT2.r, causticCutout);
                     // vec4 caustic = causticT * causticColor;
     
-                    float fadeoutDistance = 1.;
+                    float fadeoutDistance = 20.;
                     float fadeoutLerp = pow(saturate(distance(playerPos, vPos) / fadeoutDistance), 3.);
                     
                     vec4 ds2 = texture2D( 
@@ -246,7 +246,14 @@ const _createWaterMaterial = () => {
 
     
                     // foam line
-                    vec4 foamColor = vec4(1.0, 1.0, 1.0, 0.9 * fadeoutLerp * distortionDepth);
+                    float distortionOp = distortionDepth;
+                    float fadeoutThreshold = 0.85;
+                    if (distortionDepth > fadeoutThreshold) {
+                        distortionOp = fadeoutThreshold - (fadeoutThreshold / (1.0 - fadeoutThreshold)) * (distortionDepth - fadeoutThreshold);
+                    }
+                    vec4 foamColor = vec4(1.0, 1.0, 1.0, 0.9 * fadeoutLerp * distortionOp);
+                    // foamColor.a *= (1. - (distortionDepth * 2. - 1.)) * 1.5;
+                    
                     float foamDepth = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, foamDistortion * 0.005, 2.0);
                     float foamShoreWidth = 0.1;
                     float foamOpDepth = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, 3., 1.);
