@@ -461,9 +461,18 @@ export class WaterMesh extends BufferedMesh {
     // foam texture
     const baseUrl = import.meta.url.replace(/(\/)[^\/\\]*$/, '$1');
     const textureLoader = new THREE.TextureLoader();
-    const foamTexture = textureLoader.load(`${baseUrl}../water-effect/assets/textures/Waves100.png`);
+    const foamTexture = textureLoader.load(`${baseUrl}../water-effect/assets/textures/Waves10.png`);
     foamTexture.wrapS = foamTexture.wrapT = THREE.RepeatWrapping;
     this.material.uniforms.foamTexture.value = foamTexture;
+
+    const tNormal = textureLoader.load(`${baseUrl}../water-effect/assets/textures/water_n.jpg`);
+    tNormal.wrapS = tNormal.wrapT = THREE.RepeatWrapping;
+    this.material.uniforms.tNormal.value = tNormal;
+
+    const tDistortion = textureLoader.load(`${baseUrl}../water-effect/assets/textures/distortion.png`);
+    tDistortion.wrapS = tDistortion.wrapT = THREE.RepeatWrapping;
+    this.material.uniforms.tDistortion.value = tDistortion;
+
 
     // underwater mask
     const geometry = new THREE.PlaneGeometry( 2, 2 );
