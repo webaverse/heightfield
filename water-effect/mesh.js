@@ -476,7 +476,7 @@ const getFreestyleSplash = () => {
                     splash.info.initialScale[i] = new THREE.Vector3();
                 }
                 group.add(splash);
-                group.rotation.x = -Math.PI / 1.8;
+                group.rotation.x = -Math.PI / 2.0;
                 freeStyleGroup.add(group);
             }
         });

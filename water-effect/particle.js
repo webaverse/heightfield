@@ -634,7 +634,7 @@ class WaterParticleEffect {
             )
             positionsAttribute.setY(i, positionsAttribute.getY(i) - 0.008);
             positionsAttribute.setZ(i, positionsAttribute.getZ(i) + 0.003);
-            brokenAttribute.setX(i, brokenAttribute.getX(i) + 0.025);
+            brokenAttribute.setX(i, brokenAttribute.getX(i) + 0.04);
           }
           else {
             scalesAttribute.setXYZ(
@@ -665,25 +665,26 @@ class WaterParticleEffect {
       const brokenAttribute = this.freestyleSplash.geometry.getAttribute('broken');
       const rotationAttribute = this.freestyleSplash.geometry.getAttribute('rotation');
       let emitCount = 0;
-      let maxEmit = 2;
+      let maxEmit = 1;
+      const dirRandom = (Math.random() - 0.5) * 0.1;
       for (let i = 0; i < particleCount; i ++) {
         if (
           (brokenAttribute.getX(i) >= 1 || brokenAttribute.getX(i) <= 0)
           && emitCount < maxEmit
         ) {
             const right = this.player.avatarCharacterSfx.currentSwimmingHand === 'right' ? 1 : -1;
-            const rand = 0.125 * Math.random() + 0.125;
-            const rand2 = 0.5 * Math.random() + 0.5;
+            const rand = 0.28;
+            const rand2 = 0.75;
             this.freestyleSplash.info.initialScale[i].set(rand, rand2, rand); 
             scalesAttribute.setXYZ(i, rand, rand2, rand);
             positionsAttribute.setXYZ(
               i,
-              0.3 * right,
-              0.62,
-              0.1
+              0.3 * right + dirRandom,
+              0.68 + dirRandom,
+              0.
             )
             rotationAttribute.setX(i, Math.random() * 2 * Math.PI);
-            brokenAttribute.setX(i, Math.random() * 0.25);
+            brokenAttribute.setX(i, Math.random() * 0.15);
             emitCount ++;
           }
       }
