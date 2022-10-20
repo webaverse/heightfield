@@ -13,9 +13,8 @@ const sounds = useSound();
 const soundFiles = sounds.getSoundFiles();
 
 // constants
-const DEEP_WATER_THRESHOLD = 0.7;
 const regex = new RegExp('^water/jump_water[0-9]*.wav$');
-const candidateAudios = soundFiles.water.filter((f) => regex.test(f.name));
+const divingCandidateAudios = soundFiles.water.filter((f) => regex.test(f.name));
 const localVector = new THREE.Vector3();
 const localVector2 = new THREE.Vector3();
 
@@ -50,7 +49,7 @@ class WaterParticleEffect {
   }
 
   playDivingSfx() {
-    const audioSpec = candidateAudios[Math.floor(Math.random() * candidateAudios.length)];
+    const audioSpec = divingCandidateAudios[Math.floor(Math.random() * divingCandidateAudios.length)];
     sounds.playSound(audioSpec);
   }
 
@@ -327,8 +326,6 @@ class WaterParticleEffect {
         scalesAttribute.setX(this.movingRipple.info.currentBrokenRipple, 0);
       }
 
-      
-      
       randAttribute.setX(this.movingRipple.info.currentCircleRipple, Math.random());
       randAttribute.setX(this.movingRipple.info.currentBrokenRipple, Math.random());
       this.movingRipple.info.currentCircleRipple ++;
@@ -353,19 +350,19 @@ class WaterParticleEffect {
   }
 
   enableStaticRipple() {
-    const particleCount = this.movingRipple.info.particleCount;
+    const indexOfStaticRipple = this.movingRipple.info.particleCount - 1;
     const scalesAttribute = this.movingRipple.geometry.getAttribute('scales');
-    if (scalesAttribute.getX(particleCount - 1) < 3.5) {
-      scalesAttribute.setX(particleCount - 1, 3.5);
+    if (scalesAttribute.getX(indexOfStaticRipple) < 3.5) {
+      scalesAttribute.setX(indexOfStaticRipple, 3.5);
       this.movingRipple.material.uniforms.op.value = 0.1;
     }
     scalesAttribute.needsUpdate = true;
   }
 
   disableStaticRipple() {
-    const particleCount = this.movingRipple.info.particleCount;
+    const indexOfStaticRipple = this.movingRipple.info.particleCount - 1;
     const scalesAttribute = this.movingRipple.geometry.getAttribute('scales');
-    scalesAttribute.setX(particleCount - 1, 0.0);
+    scalesAttribute.setX(indexOfStaticRipple, 0.0);
     scalesAttribute.needsUpdate = true;
   }
 
@@ -397,7 +394,6 @@ class WaterParticleEffect {
       brokenAttribute.needsUpdate = true;
       positionsAttribute.needsUpdate = true;
       this.movingRipple.material.uniforms.uTime.value = timestamp / 1000;
-      
     }  
   }
 
@@ -439,7 +435,7 @@ class WaterParticleEffect {
 
     
 
-    const walkingInDeepWater = !hasSwim && this.waterSurfaceHeight > this.player.position.y - this.player.avatar.height * DEEP_WATER_THRESHOLD;
+    const walkingInDeepWater = !hasSwim && this.waterSurfaceHeight > this.player.position.y - this.player.avatar.height * 0.7;
     const swimmingAboveSurface = hasSwim && this.waterSurfaceHeight < this.player.position.y;
     if (swimmingAboveSurface) {
       if (this.currentSpeed > 0.1) {
@@ -453,6 +449,7 @@ class WaterParticleEffect {
       }
     }
 
+    // handle static ripple
     this.lastStaticTime = (this.currentSpeed > 0.1 || this.fallingSpeed > 1) ? timestamp : this.lastStaticTime;
     if (timestamp - this.lastStaticTime > 1500 && swimmingAboveSurface) {
       this.movingRipple && this.enableStaticRipple();
@@ -461,7 +458,6 @@ class WaterParticleEffect {
       this.movingRipple && this.disableStaticRipple();
     }
 
-    
     
     // update particle
     this.updateDivingRipple();

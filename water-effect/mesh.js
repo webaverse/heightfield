@@ -263,62 +263,61 @@ const getMovingRipple = () => {
 
   const quaternions = new Float32Array(particleCount * 4);
   const identityQuaternion = new THREE.Quaternion();
-  for (let i = 0; i < particleCount; i++) {
-      identityQuaternion.toArray(quaternions, i * 4);
+  for (let i = 0; i < particleCount; i ++) {
+    identityQuaternion.toArray(quaternions, i * 4);
   }
   const quaternionsAttribute = new THREE.InstancedBufferAttribute(quaternions, 4);
   geometry.setAttribute('quaternions', quaternionsAttribute);
 
   const material = new THREE.ShaderMaterial({
-      uniforms: {
-          uTime: {
-              value: 0,
-          },
-          op: {
-              value: 0,
-          },
-          particleCount: {
-              value: particleCount,
-          },
-          noiseMap2:{
-              value: noiseMap2
-          },
-          noiseMap:{
-              value: noiseMap
-          },
-          noiseCircleTexture:{
-              value: noiseCircleTexture
-          },
-          splashTexture2:{
-              value: splashTexture2
-          },
-          voronoiNoiseTexture:{
-              value: voronoiNoiseTexture
-          },
+    uniforms: {
+      uTime: {
+        value: 0,
       },
-      vertexShader: movingRippleVertex,
-      fragmentShader: movingRippleFragment,
-      side: THREE.DoubleSide,
-      transparent: true,
-      depthWrite: false,
-      // blending: THREE.AdditiveBlending,
+      op: {
+        value: 0,
+      },
+      particleCount: {
+        value: particleCount,
+      },
+      noiseMap2:{
+        value: noiseMap2
+      },
+      noiseMap:{
+        value: noiseMap
+      },
+      noiseCircleTexture:{
+        value: noiseCircleTexture
+      },
+      splashTexture2:{
+        value: splashTexture2
+      },
+      voronoiNoiseTexture:{
+        value: voronoiNoiseTexture
+      },
+    },
+    vertexShader: movingRippleVertex,
+    fragmentShader: movingRippleFragment,
+    side: THREE.DoubleSide,
+    transparent: true,
+    depthWrite: false,
   });
   const movingRipple = new THREE.InstancedMesh(geometry, material, particleCount);
   
   movingRipple.info = {
-      particleCount: particleCount,
-      currentCircleRipple: 0,
-      currentBrokenRipple: 15,
-      lastEmmitTime: 0,
+    particleCount: particleCount,
+    currentCircleRipple: 0,
+    currentBrokenRipple: 15,
+    lastEmmitTime: 0,
   }
   const euler = new THREE.Euler(-Math.PI / 2, 0, 0);
   const quaternion = new THREE.Quaternion();
   const quaternionAttribute = movingRipple.geometry.getAttribute('quaternions');
   const idAttribute = movingRipple.geometry.getAttribute('id');
-  for (let i = 0; i < particleCount; i++) {
-      quaternion.setFromEuler(euler);
-      quaternionAttribute.setXYZW(i, quaternion.x, quaternion.y, quaternion.z, quaternion.w);
-      idAttribute.setX(i, i);
+  for (let i = 0; i < particleCount; i ++) {
+    quaternion.setFromEuler(euler);
+    quaternionAttribute.setXYZW(i, quaternion.x, quaternion.y, quaternion.z, quaternion.w);
+    idAttribute.setX(i, i);
   }
   quaternionAttribute.needsUpdate = true;
   idAttribute.needsUpdate = true;
