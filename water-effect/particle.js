@@ -309,6 +309,10 @@ class WaterParticleEffect {
     }
   }
   playMovingRipple(timestamp) {
+    if (this.currentSpeed < 0.1) {
+      return;
+    }
+    
     const particleCount = this.movingRipple.info.particleCount;
     const brokenAttribute = this.movingRipple.geometry.getAttribute('broken');
     const positionsAttribute = this.movingRipple.geometry.getAttribute('positions');
@@ -570,6 +574,10 @@ class WaterParticleEffect {
   }
 
   handleSwimmingSplash(timestamp, animationType) {
+    if (this.currentSpeed < 0.1) {
+      return;
+    }
+    
     const currentSwimmingHand = this.player.avatarCharacterSfx.currentSwimmingHand;
     const playerQ = localVector4.set(this.playerDir.x, this.playerDir.y, this.playerDir.z).applyQuaternion(rotateY);
     
@@ -650,6 +658,30 @@ class WaterParticleEffect {
       );
       this.lastMovingSplashEmitTime = timestamp;
     }
+  }
+  handleWalkingSplash() {
+    const maxRunningSpeed = 0.8;
+    const currentStep = this.player.avatarCharacterSfx.currentStep;
+    if (currentStep && this.lastStep !== currentStep) {
+      const playerQ = localVector4.set(this.playerDir.x, this.playerDir.y, this.playerDir.z).applyQuaternion(rotateY);
+      const isRight = currentStep === 'right' ? 1 : -1;
+      const d = (maxRunningSpeed - this.currentSpeed) * 10;
+      const acc = localVector5.set(0, -0.0013, 0);
+      const velocity = localVector6.set(0.04 / d, 0.02, 0.04 / d);
+      const scale = 0.5 + this.currentSpeed + Math.random() * 0.2;
+      this.playMovingSplash(
+        this.playerDir.x * 0.3 + playerQ.x * 0.1 * isRight, 
+        -0.1, 
+        this.playerDir.z * 0.3 + playerQ.z * 0.1 * isRight,
+        3,
+        scale,
+        velocity,
+        acc, 
+        1.3
+      );
+    }
+    
+    this.lastStep = currentStep;
   }
   
   playBubble(timestamp) {
@@ -767,21 +799,22 @@ class WaterParticleEffect {
     this.playerDir = localVector2.applyQuaternion(this.player.quaternion);
     this.playerDir.normalize();
 
-    const walkingInDeepWater = this.contactWater && this.waterSurfaceHeight > this.player.position.y - this.player.avatar.height * 0.7;
     const swimmingAboveSurface = hasSwim && this.waterSurfaceHeight < this.player.position.y;
     if (hasSwim) {
       if (swimmingAboveSurface) {
-        if (this.currentSpeed > 0.1) {
-          this.movingRipple && this.playMovingRipple(timestamp);
-          this.movingSplash && this.handleSwimmingSplash(timestamp, swimAction.animationType);
-        }
+        this.movingRipple && this.playMovingRipple(timestamp);
+        this.movingSplash && this.handleSwimmingSplash(timestamp, swimAction.animationType);
       }
       this.bubble && this.playBubble(timestamp);
     }
     else {
-      if (walkingInDeepWater) {
-        if (this.currentSpeed > 0.1) {
+      const walkingInDeepWater = this.waterSurfaceHeight > this.player.position.y - this.player.avatar.height * 0.5;
+      if (this.contactWater) {
+        if (walkingInDeepWater) {
           this.movingRipple && this.playMovingRipple(timestamp);
+        }
+        else {
+          this.handleWalkingSplash();
         }
       }
     }
