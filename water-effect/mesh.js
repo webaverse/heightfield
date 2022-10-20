@@ -7,6 +7,7 @@ import {
   divingHigherSplashVertex, divingHigherSplashFragment,
   bubbleVertex, bubbleFragment,
   dropletRippleVertex, dropletRippleFragment,
+  movingRippleVertex, movingRippleFragment,
 } from './shader.js';
 
 const baseUrl = import.meta.url.replace(/(\/)[^\/\\]*$/, '$1');
@@ -249,9 +250,84 @@ const getDroplet = () => {
 
   return dropletgroup;
 }
+const getMovingRipple = () => {
+  const particleCount = 31;
+  const attributeSpecs = [];
+  attributeSpecs.push({name: 'id', itemSize: 1});
+  attributeSpecs.push({name: 'scales', itemSize: 1});
+  attributeSpecs.push({name: 'broken', itemSize: 1});
+  attributeSpecs.push({name: 'random', itemSize: 1});
+  attributeSpecs.push({name: 'playerRotation', itemSize: 1});
+  const geometry2 = new THREE.PlaneGeometry(0.32, 0.36);
+  const geometry = _getGeometry(geometry2, attributeSpecs, particleCount);
+
+  const quaternions = new Float32Array(particleCount * 4);
+  const identityQuaternion = new THREE.Quaternion();
+  for (let i = 0; i < particleCount; i++) {
+      identityQuaternion.toArray(quaternions, i * 4);
+  }
+  const quaternionsAttribute = new THREE.InstancedBufferAttribute(quaternions, 4);
+  geometry.setAttribute('quaternions', quaternionsAttribute);
+
+  const material = new THREE.ShaderMaterial({
+      uniforms: {
+          uTime: {
+              value: 0,
+          },
+          op: {
+              value: 0,
+          },
+          particleCount: {
+              value: particleCount,
+          },
+          noiseMap2:{
+              value: noiseMap2
+          },
+          noiseMap:{
+              value: noiseMap
+          },
+          noiseCircleTexture:{
+              value: noiseCircleTexture
+          },
+          splashTexture2:{
+              value: splashTexture2
+          },
+          voronoiNoiseTexture:{
+              value: voronoiNoiseTexture
+          },
+      },
+      vertexShader: movingRippleVertex,
+      fragmentShader: movingRippleFragment,
+      side: THREE.DoubleSide,
+      transparent: true,
+      depthWrite: false,
+      // blending: THREE.AdditiveBlending,
+  });
+  const movingRipple = new THREE.InstancedMesh(geometry, material, particleCount);
+  
+  movingRipple.info = {
+      particleCount: particleCount,
+      currentCircleRipple: 0,
+      currentBrokenRipple: 15,
+      lastEmmitTime: 0,
+  }
+  const euler = new THREE.Euler(-Math.PI / 2, 0, 0);
+  const quaternion = new THREE.Quaternion();
+  const quaternionAttribute = movingRipple.geometry.getAttribute('quaternions');
+  const idAttribute = movingRipple.geometry.getAttribute('id');
+  for (let i = 0; i < particleCount; i++) {
+      quaternion.setFromEuler(euler);
+      quaternionAttribute.setXYZW(i, quaternion.x, quaternion.y, quaternion.z, quaternion.w);
+      idAttribute.setX(i, i);
+  }
+  quaternionAttribute.needsUpdate = true;
+  idAttribute.needsUpdate = true;
+  return movingRipple;
+}
 export {
   getDivingRipple,
   getDivingLowerSplash,
   getDivingHigherSplash,
   getDroplet,
+  getMovingRipple,
 };
