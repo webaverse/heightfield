@@ -667,7 +667,7 @@ class WaterParticleEffect {
       const isRight = currentStep === 'right' ? 1 : -1;
       const d = (maxRunningSpeed - this.currentSpeed) * 10;
       const acc = localVector5.set(0, -0.0013, 0);
-      const velocity = localVector6.set(0.04 / d, 0.02, 0.04 / d);
+      const velocity = localVector6.set(0.02 / d, 0.02, 0.02 / d);
       const scale = 0.5 + this.currentSpeed + Math.random() * 0.2;
       this.playMovingSplash(
         this.playerDir.x * 0.3 + playerQ.x * 0.1 * isRight, 
