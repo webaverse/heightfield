@@ -478,6 +478,68 @@ const movingRippleFragment = `\
     ${THREE.ShaderChunk.logdepthbuf_fragment}
   }
 `
+const freestyleSplashVertex = `\     
+  ${THREE.ShaderChunk.common}
+  ${THREE.ShaderChunk.logdepthbuf_pars_vertex}
+
+  attribute vec3 scales;
+
+  attribute float rotation;
+  attribute vec3 positions;
+  attribute float broken;
+
+  varying float vBroken;
+  varying vec2 vUv;
+  varying vec3 vPos;
+
+  void main() {  
+    mat3 rotY = mat3(
+      cos(rotation), 0.0, -sin(rotation), 
+      0.0, 1.0, 0.0, 
+      sin(rotation), 0.0, cos(rotation)
+    );
+    vBroken = broken;
+    vUv = uv;
+    vec3 pos = position;
+    pos *= 0.006;
+    pos *= scales;
+    pos *= rotY;
+    pos += positions;
+    vec4 modelPosition = modelMatrix * vec4(pos, 1.0);
+    vec4 viewPosition = viewMatrix * modelPosition;
+    vec4 projectionPosition = projectionMatrix * viewPosition;
+    vPos = modelPosition.xyz;
+    gl_Position = projectionPosition;
+    ${THREE.ShaderChunk.logdepthbuf_vertex}
+  }
+`
+const freestyleSplashFragment = `\
+  ${THREE.ShaderChunk.logdepthbuf_pars_fragment}
+  uniform float waterSurfacePos;
+  uniform sampler2D circleTexture;
+  uniform sampler2D noiseMap;
+
+  varying vec2 vUv;
+  varying vec3 vPos;
+  varying float vBroken;
+
+  void main() {
+    vec4 motion = texture2D(
+      circleTexture,
+      vUv
+    );
+    gl_FragColor = motion;
+    if (gl_FragColor.r > 0.01) {
+      gl_FragColor.rgb *= 1.5;
+    }
+    float broken = abs(sin(1.0 - vBroken)) - texture2D(noiseMap, vUv).g;
+    if (broken < 0.0001) discard;
+    if (vPos.y < waterSurfacePos) {
+      discard;
+    }
+    ${THREE.ShaderChunk.logdepthbuf_fragment}
+  }
+`
 export {
   divingRippleVertex, divingRippleFragment,
   divingLowerSplashVertex, divingLowerSplashFragment,
@@ -485,4 +547,5 @@ export {
   bubbleVertex, bubbleFragment,
   dropletRippleVertex, dropletRippleFragment,
   movingRippleVertex, movingRippleFragment,
+  freestyleSplashVertex, freestyleSplashFragment,
 };

@@ -7,6 +7,7 @@ import {
   getDroplet,
   getMovingRipple,
   getMovingSplash,
+  getFreestyleSplash,
   getBubble,
 } from './mesh.js';
 
@@ -60,6 +61,10 @@ class WaterParticleEffect {
     this.movingSplashGroup = null;
     this.lastSwimmingHand = null;
     this.initMovingSplash();
+
+    this.freestyleSplash = null;
+    this.freestyleSplashGroup = null;
+    this.initfreestyleSplash();
 
     this.bubble = null;
     this.initBubble();
@@ -483,6 +488,87 @@ class WaterParticleEffect {
     }
   }
 
+  playFreestyleSplash() {
+    const particleCount = this.freestyleSplash.info.particleCount;
+    const positionsAttribute = this.freestyleSplash.geometry.getAttribute('positions');
+    const scalesAttribute = this.freestyleSplash.geometry.getAttribute('scales');
+    const brokenAttribute = this.freestyleSplash.geometry.getAttribute('broken');
+    const rotationAttribute = this.freestyleSplash.geometry.getAttribute('rotation');
+    let emitCount = 0;
+    let maxEmit = 1;
+    const dirRandom = (Math.random() - 0.5) * 0.1;
+    for (let i = 0; i < particleCount; i ++) {
+      if (brokenAttribute.getX(i) >= 1 || brokenAttribute.getX(i) <= 0) {
+        const right = this.player.avatarCharacterSfx.currentSwimmingHand === 'right' ? 1 : -1;
+        const rand = 0.28;
+        const rand2 = 0.75;
+        this.freestyleSplash.info.initialScale[i].set(rand, rand2, rand); 
+        scalesAttribute.setXYZ(i, rand, rand2, rand);
+        positionsAttribute.setXYZ(
+          i,
+          0.3 * right + dirRandom,
+          0.68 + dirRandom,
+          0.
+        )
+        rotationAttribute.setX(i, Math.random() * 2 * Math.PI);
+        brokenAttribute.setX(i, Math.random() * 0.15);
+        emitCount ++;
+      }
+      if (emitCount >= maxEmit) {
+        break;
+      }
+    }
+    positionsAttribute.needsUpdate = true;
+    scalesAttribute.needsUpdate = true;
+    brokenAttribute.needsUpdate = true;
+    rotationAttribute.needsUpdate = true;
+  }
+
+  updateFreestyleSplash() {
+    if (this.freestyleSplash) {
+      this.freestyleSplashGroup.position.copy(this.player.position);
+      this.freestyleSplashGroup.position.y = 0;
+      this.freestyleSplashGroup.rotation.copy(this.player.rotation);
+
+      const particleCount = this.freestyleSplash.info.particleCount;
+      const positionsAttribute = this.freestyleSplash.geometry.getAttribute('positions');
+      const brokenAttribute = this.freestyleSplash.geometry.getAttribute('broken');
+      const scalesAttribute = this.freestyleSplash.geometry.getAttribute('scales');
+      for (let i = 0; i < particleCount; i ++) {
+        if (brokenAttribute.getX(i) < 1) {
+          if ( scalesAttribute.getY(i) > this.freestyleSplash.info.initialScale[i].y * 1.5) {
+            scalesAttribute.setXYZ(
+              i, 
+              scalesAttribute.getX(i) * 1.03, 
+              scalesAttribute.getY(i) * 1.04, 
+              scalesAttribute.getZ(i) * 1.03
+            )
+            positionsAttribute.setY(i, positionsAttribute.getY(i) - 0.008);
+            positionsAttribute.setZ(i, positionsAttribute.getZ(i) + 0.003);
+            brokenAttribute.setX(i, brokenAttribute.getX(i) + 0.04);
+          }
+          else {
+            scalesAttribute.setXYZ(
+              i, 
+              scalesAttribute.getX(i) * 1.1, 
+              scalesAttribute.getY(i) * 1.15, 
+              scalesAttribute.getZ(i) * 1.1
+            )
+          }
+        }
+      }
+      scalesAttribute.needsUpdate = true;
+      positionsAttribute.needsUpdate = true;
+      brokenAttribute.needsUpdate = true;
+      this.freestyleSplash.material.uniforms.waterSurfacePos.value = this.waterSurfaceHeight;
+    }
+    else {
+      if (this.freestyleSplashGroup.children.length > 0 && this.freestyleSplashGroup.children[0].children.length) {
+        this.freestyleSplash = this.freestyleSplashGroup.children[0].children[0];
+      }
+    }
+  }
+
   handleSwimmingSplash(timestamp, animationType) {
     const currentSwimmingHand = this.player.avatarCharacterSfx.currentSwimmingHand;
     const playerQ = localVector4.set(this.playerDir.x, this.playerDir.y, this.playerDir.z).applyQuaternion(rotateY);
@@ -526,6 +612,8 @@ class WaterParticleEffect {
           acc, 
           1.3
         );
+        // emit freestyle splash on swimming hand
+        this.playFreestyleSplash();
       } 
     }
     this.lastSwimmingHand = currentSwimmingHand; 
@@ -717,6 +805,7 @@ class WaterParticleEffect {
     this.updateMovingRipple(timestamp);
     this.updateMovingSplash();
     this.updateBubble();
+    this.updateFreestyleSplash();
     
     this.lastContactWater = this.contactWater;
     this.scene.updateMatrixWorld();
@@ -750,6 +839,10 @@ class WaterParticleEffect {
     this.movingSplashGroup = getMovingSplash();
     this.movingSplash = this.movingSplashGroup.children[0];
     this.scene.add(this.movingSplashGroup);
+  }
+  initfreestyleSplash() {
+    this.freestyleSplashGroup = getFreestyleSplash();
+    this.scene.add(this.freestyleSplashGroup);
   }
   initBubble() {
     this.bubble = getBubble();

@@ -8,6 +8,7 @@ import {
   bubbleVertex, bubbleFragment,
   dropletRippleVertex, dropletRippleFragment,
   movingRippleVertex, movingRippleFragment,
+  freestyleSplashVertex, freestyleSplashFragment,
 } from './shader.js';
 
 const baseUrl = import.meta.url.replace(/(\/)[^\/\\]*$/, '$1');
@@ -372,6 +373,63 @@ const getMovingSplash = () => {
   brokenAttribute.needsUpdate = true;
   return group;
 }
+const getFreestyleSplash = () => {
+  const group = new THREE.Group();
+  const freeStyleGroup = new THREE.Group();
+  const particleCount = 6;
+  (async () => {
+    const u = `${baseUrl}./assets/dome.glb`;
+    const splashApp = await new Promise((accept, reject) => {
+      const {gltfLoader} = useLoaders();
+      gltfLoader.load(u, accept, function onprogress() {}, reject);
+    });
+
+    splashApp.scene.traverse(o => {
+      if (o.isMesh) {
+        const splashGeometry = o.geometry;
+        const attributeSpecs = [];
+        attributeSpecs.push({name: 'broken', itemSize: 1});
+        attributeSpecs.push({name: 'scales', itemSize: 3});
+        attributeSpecs.push({name: 'rotation', itemSize: 1});
+        const geometry = _getGeometry(splashGeometry, attributeSpecs, particleCount);
+
+        const material= new THREE.ShaderMaterial({
+          uniforms: {
+            waterSurfacePos: {
+              value: 0
+            },
+            circleTexture: {
+              value: circleTexture
+            },
+            noiseMap: {
+              value: noiseMap
+            },
+          },
+          vertexShader: freestyleSplashVertex,
+          fragmentShader: freestyleSplashFragment,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+          transparent: true,
+        });
+
+        const splash = new THREE.InstancedMesh(geometry, material, particleCount);
+        splash.info = {
+          particleCount: particleCount,
+          initialScale: [particleCount],
+        }
+        for (let i = 0; i < particleCount; i ++) {
+          splash.info.initialScale[i] = new THREE.Vector3();
+        }
+        group.add(splash);
+        group.rotation.x = -Math.PI / 2.0;
+        freeStyleGroup.add(group);
+      }
+    });
+  })();
+  
+  return freeStyleGroup;
+}
 const getBubble = () => {
   const particleCount = 20;
   const attributeSpecs = [];
@@ -418,5 +476,6 @@ export {
   getDroplet,
   getMovingRipple,
   getMovingSplash,
+  getFreestyleSplash,
   getBubble,
 };
