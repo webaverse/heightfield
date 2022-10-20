@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import metaversefile from 'metaversefile';
 import {bufferSize, WORLD_BASE_HEIGHT, MIN_WORLD_HEIGHT, MAX_WORLD_HEIGHT} from '../constants.js';
+import WaterParticleEffect from '../water-effect/particle.js';
 
 const {useProcGenManager, useGeometryBuffering, useLocalPlayer} = metaversefile;
 const {BufferedMesh, GeometryAllocator} = useGeometryBuffering();
@@ -89,6 +90,8 @@ export class WaterMesh extends BufferedMesh {
 
     this.lastSwimmingHand = null;
     this.swimDamping = 1;
+
+    this.initSetUp();
   }
   addChunk(chunk, chunkResult) {
     const key = procGenManager.getNodeHash(chunk);
@@ -264,7 +267,9 @@ export class WaterMesh extends BufferedMesh {
       this.gpuTasks.delete(key);
     }
   }
-
+  initSetUp() {
+    this.particleEffect = new WaterParticleEffect();
+  }
   checkWaterContact(chunkPhysicObject, player, waterSurfaceHeight) {
     // use overlapBox to check whether player contact the water
     this.physics.enableGeometryQueries(chunkPhysicObject);
@@ -383,6 +388,12 @@ export class WaterMesh extends BufferedMesh {
       swimAction.swimDamping = this.swimDamping;
     }
   }
+  updateParticle(contactWater, localPlayer, waterSurfaceHeight) {
+    this.particleEffect.update();
+    this.particleEffect.contactWater = contactWater;
+    this.particleEffect.player = localPlayer;
+    this.particleEffect.waterSurfaceHeight = waterSurfaceHeight;
+  };
 
   update() {
     const localPlayer = useLocalPlayer();
@@ -403,6 +414,9 @@ export class WaterMesh extends BufferedMesh {
 
       // handle swimming action
       this.handleSwimAction(contactWater, localPlayer, WATER_HEIGHT);
+
+      // handle particle
+      this.updateParticle(contactWater, localPlayer, WATER_HEIGHT);
     }
   }
 }
