@@ -487,7 +487,8 @@ class WaterParticleEffect {
     const timestamp = performance.now();
     const swimAction = this.player.getAction('swim');
     const hasSwim = !!swimAction;
-    // diving water
+    
+    //#################################### handle diving water ####################################
     if (this.contactWater && this.lastContactWater !== this.contactWater) {
       this.fallingSpeed = 0 - this.player.characterPhysics.velocity.y;
       this.divingCollisionPos.set(this.player.position.x, this.waterSurfaceHeight, this.player.position.z);
@@ -505,7 +506,7 @@ class WaterParticleEffect {
       this.fallingSpeed = 0;
     }
 
-    // moving in water
+    //#################################### handle moving in water ####################################
     // get player moving speed
     if (this.player.avatar) {
       this.currentSpeed = localVector.set(this.player.avatar.velocity.x, 0, this.player.avatar.velocity.z).length();
@@ -515,8 +516,6 @@ class WaterParticleEffect {
     localVector2.set(0, 0, -1);
     this.playerDir = localVector2.applyQuaternion(this.player.quaternion);
     this.playerDir.normalize();
-
-    
 
     const walkingInDeepWater = this.contactWater && this.waterSurfaceHeight > this.player.position.y - this.player.avatar.height * 0.7;
     const swimmingAboveSurface = hasSwim && this.waterSurfaceHeight < this.player.position.y;
@@ -537,7 +536,7 @@ class WaterParticleEffect {
     }
     
 
-    // handle static ripple
+    //#################################### handle static in water ####################################
     this.lastStaticTime = (this.currentSpeed > 0.1 || this.fallingSpeed > 1) ? timestamp : this.lastStaticTime;
     if (timestamp - this.lastStaticTime > 1500 && swimmingAboveSurface) {
       this.movingRipple && this.enableStaticRipple();
