@@ -323,10 +323,50 @@ const getMovingRipple = () => {
   idAttribute.needsUpdate = true;
   return movingRipple;
 }
+const getBubble = () => {
+  const particleCount = 20;
+  const attributeSpecs = [];
+  attributeSpecs.push({name: 'scales', itemSize: 1});
+  attributeSpecs.push({name: 'offset', itemSize: 2});
+  const geometry2 = new THREE.PlaneGeometry(0.02, 0.02);
+  const geometry = _getGeometry(geometry2, attributeSpecs, particleCount);
+
+  const material = new THREE.ShaderMaterial({
+    uniforms: {
+      cameraBillboardQuaternion: {
+        value: new THREE.Quaternion(),
+      },
+      bubbleTexture1: {
+        value: bubbleTexture2,
+      },
+    },
+    vertexShader: bubbleVertex,
+    fragmentShader: bubbleFragment,
+    side: THREE.DoubleSide,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+  const bubble = new THREE.InstancedMesh(geometry, material, particleCount);
+  
+  bubble.info = {
+    particleCount: particleCount,
+    lastEmmitTime: 0,
+    velocity: [particleCount],
+    offset: [particleCount],
+    livingTime:[particleCount],
+    maxLife:[particleCount]
+  }
+  for (let i = 0; i < particleCount; i++) {
+    bubble.info.velocity[i] = new THREE.Vector3();
+  }
+  return bubble;
+}
 export {
   getDivingRipple,
   getDivingLowerSplash,
   getDivingHigherSplash,
   getDroplet,
   getMovingRipple,
+  getBubble,
 };
