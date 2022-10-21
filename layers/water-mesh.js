@@ -345,7 +345,7 @@ export class WaterMesh extends BufferedMesh {
     };
 
     if (contactWater) {
-      this.material.color.setHex(0x0000ff); // for testing
+      this.material.color.setHex(0x1CEAD9); // for testing
 
       const _calculateSwimHeight = () => {
         const outsideWaterRange =
