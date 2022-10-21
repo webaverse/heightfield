@@ -438,7 +438,7 @@ const getFreestyleSplash = () => {
   return freeStyleGroup;
 }
 const getBubble = () => {
-  const particleCount = 20;
+  const particleCount = 40;
   const attributeSpecs = [];
   attributeSpecs.push({name: 'scales', itemSize: 1});
   attributeSpecs.push({name: 'offset', itemSize: 2});
