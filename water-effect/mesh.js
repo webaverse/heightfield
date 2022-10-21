@@ -9,6 +9,7 @@ import {
   dropletRippleVertex, dropletRippleFragment,
   movingRippleVertex, movingRippleFragment,
   freestyleSplashVertex, freestyleSplashFragment,
+  bodyDropVertex, bodyDropFragment,
 } from './shader.js';
 
 const baseUrl = import.meta.url.replace(/(\/)[^\/\\]*$/, '$1');
@@ -469,6 +470,55 @@ const getBubble = () => {
   }
   return bubble;
 }
+const getBodyDrop = () => {
+  const bodyDropGroup = new THREE.Group();
+  const particleCount = 6;
+  const attributeSpecs = [];
+  attributeSpecs.push({name: 'broken', itemSize: 1});
+  attributeSpecs.push({name: 'id', itemSize: 1});
+  attributeSpecs.push({name: 'scales', itemSize: 3});
+  attributeSpecs.push({name: 'opacity', itemSize: 1});
+  const geometry2 = new THREE.PlaneGeometry(0.03, 0.03);
+  const geometry = _getGeometry(geometry2, attributeSpecs, particleCount);
+  const material= new THREE.ShaderMaterial({
+    uniforms: {
+      cameraBillboardQuaternion: {
+        value: new THREE.Quaternion(),
+      },
+      splashTexture: {
+        value: splashTexture2,
+      },
+      noiseMap:{
+        value: noiseMap
+      },
+      dropTexture: {
+        value: dropTexture
+      },
+      dropCount: {
+        value: particleCount / 2
+      }
+    },
+    vertexShader: bodyDropVertex,
+    fragmentShader: bodyDropFragment,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    transparent: true,
+  });
+  const bodyDrop = new THREE.InstancedMesh(geometry, material, particleCount);
+  bodyDrop.info = {
+    particleCount: particleCount,
+    dropCount: particleCount / 2,
+    lastContactWater: -Infinity
+  }
+  const idAttribute = bodyDrop.geometry.getAttribute('id');
+  for (let i = 0; i < particleCount; i++) {
+    idAttribute.setX(i, i);
+  }
+  idAttribute.needsUpdate = true;
+  bodyDropGroup.add(bodyDrop);
+  return bodyDropGroup;
+}
 export {
   getDivingRipple,
   getDivingLowerSplash,
@@ -478,4 +528,5 @@ export {
   getMovingSplash,
   getFreestyleSplash,
   getBubble,
+  getBodyDrop,
 };

@@ -9,6 +9,7 @@ import {
   getMovingSplash,
   getFreestyleSplash,
   getBubble,
+  getBodyDrop,
 } from './mesh.js';
 
 const {useSound, useInternals} = metaversefile;
@@ -68,6 +69,10 @@ class WaterParticleEffect {
 
     this.bubble = null;
     this.initBubble();
+
+    this.bodyDrop = null;
+    this.bodyDropGroup = null;
+    this.initbodyDrop();
   }
 
   playDivingSfx() {
@@ -482,6 +487,9 @@ class WaterParticleEffect {
           }
           this.movingSplash.info.velocity[i].add(this.movingSplash.info.acc[i]);
         }
+        else {
+          scalesAttribute.setX(i, 0);
+        }
       }
       positionsAttribute.needsUpdate = true;
       scalesAttribute.needsUpdate = true;
@@ -723,6 +731,7 @@ class WaterParticleEffect {
     positionsAttribute.needsUpdate = true;
     scalesAttribute.needsUpdate = true;
   }
+
   updateBubble() {
     if (this.bubble) {
       const particleCount = this.bubble.info.particleCount;
@@ -761,6 +770,105 @@ class WaterParticleEffect {
       this.bubble.material.uniforms.cameraBillboardQuaternion.value.copy(this.camera.quaternion);
     }
   }
+
+  playBodyDrop() {
+    const particleCount = this.bodyDrop.info.particleCount;
+    const positionsAttribute = this.bodyDrop.geometry.getAttribute('positions');
+    const scalesAttribute = this.bodyDrop.geometry.getAttribute('scales');
+    const brokenAttribute = this.bodyDrop.geometry.getAttribute('broken');
+    const opacityAttribute = this.bodyDrop.geometry.getAttribute('opacity');
+    const maxEmit = 1;
+    let count = 0;
+    for (let i = 0; i < particleCount; i ++) {
+      if (i < this.bodyDrop.info.dropCount) { // handle drop
+        if (opacityAttribute.getX(i) <= 0) {
+          positionsAttribute.setXYZ(
+            i,
+            (Math.random() - 0.5) * 0.3,
+            -0.25 - Math.random() * 0.3,
+            (Math.random() - 0.5) * 0.3
+          )
+          opacityAttribute.setX(i, Math.random() * 0.5);
+          scalesAttribute.setXYZ(i, 1, 3 + Math.random() * 2, 1);
+          count ++;
+        }
+      }
+      else { // handle splash
+        if (brokenAttribute.getX(i) >= 1) {
+          positionsAttribute.setXYZ(
+            i,
+            (Math.random() - 0.5) * 0.25,
+            -0.3 - Math.random() * 0.6,
+            (Math.random() - 0.5) * 0.25
+          )
+          brokenAttribute.setX(i, 0.35 + 0.5 * Math.random());
+          scalesAttribute.setXYZ(
+            i, 
+            4.5 + Math.random() * 4.5, 
+            4.5 + Math.random() * 4.5,  
+            4.5 + Math.random() * 4.5
+          );
+          count ++;
+        }
+      }
+      if (count >= maxEmit) {
+        break;
+      }
+      
+    }
+    positionsAttribute.needsUpdate = true;
+    scalesAttribute.needsUpdate = true;
+    brokenAttribute.needsUpdate = true;
+    opacityAttribute.needsUpdate = true;
+  }
+
+  updateBodyDrop(timestamp) {
+    if (this.bodyDrop) {
+      if (this.contactWater) {
+        this.bodyDrop.info.lastContactWater = timestamp;
+      }
+      this.bodyDropGroup.position.copy(this.player.position);
+      const particleCount = this.bodyDrop.info.particleCount;
+      const positionsAttribute = this.bodyDrop.geometry.getAttribute('positions');
+      const scalesAttribute = this.bodyDrop.geometry.getAttribute('scales');
+      const brokenAttribute = this.bodyDrop.geometry.getAttribute('broken');
+      const opacityAttribute = this.bodyDrop.geometry.getAttribute('opacity');
+      for (let i = 0; i < particleCount; i ++) {
+        if (i < this.bodyDrop.info.dropCount) {
+          if (opacityAttribute.getX(i) > 0) {
+            opacityAttribute.setX(i, opacityAttribute.getX(i) - 0.015);
+            positionsAttribute.setY(
+              i,
+              positionsAttribute.getY(i) - 0.018
+            )
+            scalesAttribute.setXYZ(i, 1, scalesAttribute.getY(i) * 1.03, 1);
+          }
+        }
+        else {
+          if (brokenAttribute.getX(i) < 1) {
+            brokenAttribute.setX(i, brokenAttribute.getX(i) + 0.0085);
+            scalesAttribute.setXYZ(
+              i,
+              scalesAttribute.getX(i) * 1.03,
+              scalesAttribute.getY(i) * 1.03,
+              scalesAttribute.getZ(i) * 1.03
+            )
+          }
+        }
+      }
+      positionsAttribute.needsUpdate = true;
+      scalesAttribute.needsUpdate = true;
+      brokenAttribute.needsUpdate = true;
+      opacityAttribute.needsUpdate = true;
+      this.bodyDrop.material.uniforms.cameraBillboardQuaternion.value.copy(this.camera.quaternion);
+    }
+    else {
+      if (this.bodyDropGroup.children.length > 0) {
+        this.bodyDrop = this.bodyDropGroup.children[0];
+      }
+    }
+  }
+  
 
   update() {
     if (!this.player) {
@@ -818,9 +926,8 @@ class WaterParticleEffect {
         }
       }
     }
-    
 
-    //#################################### handle static in water ####################################
+    //#################################### handle stop moving in water ####################################
     this.lastStaticTime = (this.currentSpeed > 0.1 || this.fallingSpeed > 1) ? timestamp : this.lastStaticTime;
     if (timestamp - this.lastStaticTime > 1500 && swimmingAboveSurface) {
       this.movingRipple && this.enableStaticRipple();
@@ -829,7 +936,16 @@ class WaterParticleEffect {
       this.movingRipple && this.disableStaticRipple();
     }
 
+    //#################################### handle wet body ####################################
+    if (this.bodyDrop) {
+      const lastContactWaterTime = this.bodyDrop.info.lastContactWater;
+      const walkInWater = this.contactWater && !hasSwim;
+      const walkOnLand = timestamp - lastContactWaterTime > 100 && timestamp - lastContactWaterTime < 10000;
+      const playParticle = walkInWater || walkOnLand;
+      playParticle && this.playBodyDrop();
+    }
     
+   
     // update particle
     this.updateDivingRipple();
     this.updateDivingLowerSplash();
@@ -839,6 +955,7 @@ class WaterParticleEffect {
     this.updateMovingSplash();
     this.updateBubble();
     this.updateFreestyleSplash();
+    this.updateBodyDrop(timestamp);
     
     this.lastContactWater = this.contactWater;
     this.scene.updateMatrixWorld();
@@ -880,6 +997,10 @@ class WaterParticleEffect {
   initBubble() {
     this.bubble = getBubble();
     this.scene.add(this.bubble);
+  }
+  initbodyDrop() {
+    this.bodyDropGroup = getBodyDrop();
+    this.scene.add(this.bodyDropGroup);
   }
 }
 
