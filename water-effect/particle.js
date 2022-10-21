@@ -472,7 +472,7 @@ class WaterParticleEffect {
       const brokenAttribute = this.movingSplash.geometry.getAttribute('broken');
       for (let i = 0; i < particleCount; i++) {
         if (brokenAttribute.getX(i) < 1) {
-          const belowWater = this.waterSurfaceHeight > this.player.position.y - 0.1;
+          // const belowWater = this.waterSurfaceHeight > this.player.position.y - 0.1;
           const stopMoving = this.currentSpeed <= 0.1
           // const brokenAcc = (belowWater || stopMoving) ? 0.05 : 0.015 * this.movingSplash.info.brokenVelocity[i];
           const brokenAcc = 0.015 * this.movingSplash.info.brokenVelocity[i];
@@ -680,7 +680,7 @@ class WaterParticleEffect {
       const scale = 0.5 + this.currentSpeed + Math.random() * 0.2;
       this.playMovingSplash(
         this.playerDir.x * 0.15 + playerQ.x * 0.1 * isRight, 
-        -0.2, 
+        -0.23, 
         this.playerDir.z * 0.15 + playerQ.z * 0.1 * isRight,
         3,
         scale,
