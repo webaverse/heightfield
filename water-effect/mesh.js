@@ -106,6 +106,9 @@ const getDivingLowerSplash = () => {
       noiseMap:{
         value: noiseMap
       },
+      noiseScale: {
+        value: 2.5
+      },
     },
     vertexShader: divingLowerSplashVertex,
     fragmentShader: divingLowerSplashFragment,
@@ -348,6 +351,9 @@ const getMovingSplash = () => {
       },
       noiseMap: {
         value: noiseMap
+      },
+      noiseScale: {
+        value: 0.9
       },
     },
     vertexShader: divingLowerSplashVertex,

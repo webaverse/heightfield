@@ -98,6 +98,7 @@ const divingLowerSplashFragment = `\
   uniform sampler2D splashTexture;
   uniform sampler2D noiseMap;
   uniform float waterSurfacePos;
+  uniform float noiseScale;
 
   varying vec2 vUv;
   varying vec3 vPos;
@@ -122,7 +123,7 @@ const divingLowerSplashFragment = `\
       gl_FragColor.a = 0.;
     }
 
-    float broken = abs(sin(1.0 - vBroken)) - texture2D( noiseMap, rotated * 0.9 ).g;
+    float broken = abs(sin(1.0 - vBroken)) - texture2D( noiseMap, rotated * noiseScale ).g;
     if (broken < 0.0001) discard;
     if (gl_FragColor.a > 0.) {
       gl_FragColor = vec4(0.9, 0.9, 0.9, 1.0);
