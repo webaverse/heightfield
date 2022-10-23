@@ -627,7 +627,7 @@ class WaterParticleEffect {
           1.3 + Math.random() * 0.2,
           velocity,
           acc, 
-          1.3
+          1.5
         );
         // emit freestyle splash on swimming hand
         this.playFreestyleSplash();
