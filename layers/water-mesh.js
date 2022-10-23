@@ -91,7 +91,7 @@ export class WaterMesh extends BufferedMesh {
     this.lastSwimmingHand = null;
     this.swimDamping = 1;
 
-    this.initSetUp();
+    this.particleEffect = new WaterParticleEffect();
   }
   addChunk(chunk, chunkResult) {
     const key = procGenManager.getNodeHash(chunk);
@@ -267,9 +267,7 @@ export class WaterMesh extends BufferedMesh {
       this.gpuTasks.delete(key);
     }
   }
-  initSetUp() {
-    this.particleEffect = new WaterParticleEffect();
-  }
+  
   checkWaterContact(chunkPhysicObject, player, waterSurfaceHeight) {
     // use overlapBox to check whether player contact the water
     this.physics.enableGeometryQueries(chunkPhysicObject);
