@@ -662,14 +662,14 @@ class WaterParticleEffect {
     }
   }
   handleWalkingSplash() {
-    const maxRunningSpeed = 0.8;
     const currentStep = this.player.avatarCharacterSfx.currentStep;
     if (currentStep && this.lastStep !== currentStep) {
       const playerQ = localVector4.set(this.playerDir.x, this.playerDir.y, this.playerDir.z).applyQuaternion(rotateY);
       const isRight = currentStep === 'right' ? 1 : -1;
+      const maxRunningSpeed = 0.8;
       const d = (maxRunningSpeed - this.currentSpeed) * 10;
       const acc = localVector5.set(0, 0, 0);
-      const velocity = localVector6.set(0.02 / d, 0, 0.02 / d);
+      const velocity = localVector6.set(0.02, 0, 0.02).divideScalar(d);
       const scale = 0.5 + this.currentSpeed + Math.random() * 0.2;
       this.playMovingSplash(
         this.playerDir.x * 0.2 + playerQ.x * 0.1 * isRight, 
