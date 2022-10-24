@@ -414,10 +414,9 @@ export class WaterMesh extends BufferedMesh {
 
       // handle swimming action
       this.handleSwimAction(contactWater, localPlayer, WATER_HEIGHT);
-
-      // handle particle
-      this.updateParticle(contactWater, localPlayer, WATER_HEIGHT);
     }
+    // handle particle
+    this.updateParticle(contactWater, localPlayer, WATER_HEIGHT);
   }
   setPackage(pkg) {
     const particleTextures = pkg.textures['particleTextures'];
