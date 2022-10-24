@@ -426,7 +426,6 @@ export class WaterMesh extends BufferedMesh {
   }
 
   async waitForLoad() {
-    const baseUrl = import.meta.url.replace(/(\/)[^\/\\]*$/, '$1');
     const paths = {
       particleTexturePath: PARTICLE_TEXTURE_PATHS,
       particleGLBPath: PARTICLE_MODEL_PATHS,
