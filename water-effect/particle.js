@@ -512,9 +512,11 @@ class WaterParticleEffect {
         const rand2 = 0.75;
         this.freestyleSplash.info.initialScale[i].set(rand, rand2, rand); 
         scalesAttribute.setXYZ(i, rand, rand2, rand);
+        const avatarShoulderWidth = this.player.avatar.shoulderWidth;
+        const freestyleSplashPos = avatarShoulderWidth * 1.15;
         positionsAttribute.setXYZ(
           i,
-          0.3 * right + dirRandom,
+          freestyleSplashPos * right + dirRandom,
           0.68 + dirRandom,
           0.
         )
