@@ -517,7 +517,7 @@ class WaterParticleEffect {
         positionsAttribute.setXYZ(
           i,
           freestyleSplashPos * right + dirRandom,
-          0.68 + dirRandom,
+          0.7 + dirRandom,
           0.
         )
         rotationAttribute.setX(i, Math.random() * 2 * Math.PI);
@@ -537,7 +537,7 @@ class WaterParticleEffect {
   updateFreestyleSplash() {
     if (this.freestyleSplash) {
       this.freestyleSplashGroup.position.copy(this.player.position);
-      this.freestyleSplashGroup.position.y = 0;
+      this.freestyleSplashGroup.position.y = 0.29;
       this.freestyleSplashGroup.rotation.copy(this.player.rotation);
 
       const particleCount = this.freestyleSplash.info.particleCount;

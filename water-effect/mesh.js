@@ -401,7 +401,7 @@ const getFreestyleSplash = (domeModel) => {
         splash.info.initialScale[i] = new THREE.Vector3();
       }
       group.add(splash);
-      group.rotation.x = -Math.PI / 2.0;
+      group.rotation.x = -Math.PI / 1.5;
       freeStyleGroup.add(group);
     }
   });
