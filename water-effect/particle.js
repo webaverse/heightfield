@@ -17,6 +17,8 @@ const sounds = useSound();
 const soundFiles = sounds.getSoundFiles();
 
 // constants
+const BREASTSTROKE = 'breaststroke';
+const FREESTYLE = 'freestyle';
 const regex = new RegExp('^water/jump_water[0-9]*.wav$');
 const divingCandidateAudios = soundFiles.water.filter((f) => regex.test(f.name));
 const localVector = new THREE.Vector3();
@@ -467,9 +469,7 @@ class WaterParticleEffect {
       const brokenAttribute = this.movingSplash.geometry.getAttribute('broken');
       for (let i = 0; i < particleCount; i++) {
         if (brokenAttribute.getX(i) < 1) {
-          // const belowWater = this.waterSurfaceHeight > this.player.position.y - 0.1;
-          const stopMoving = this.currentSpeed <= 0.1
-          // const brokenAcc = (belowWater || stopMoving) ? 0.05 : 0.015 * this.movingSplash.info.brokenVelocity[i];
+          const stopMoving = this.currentSpeed <= 0.1;
           const brokenAcc = 0.015 * this.movingSplash.info.brokenVelocity[i];
           brokenAttribute.setX(i, brokenAttribute.getX(i) + brokenAcc);
           scalesAttribute.setX(i, scalesAttribute.getX(i) + 0.05);
@@ -583,12 +583,15 @@ class WaterParticleEffect {
     if (currentSwimmingHand && this.lastSwimmingHand !== currentSwimmingHand) {
       const acc = localVector5.set(0, -0.001, 0);
       const velocity = localVector6.set(0.03, 0.015, 0.03);
-      if (animationType === 'breaststroke') {
+      const avatarShoulderWidth = this.player.avatar.shoulderWidth;
+      const breaststrokeSplashPos = avatarShoulderWidth * 0.8;
+      const freestyleSplashPos = avatarShoulderWidth * 0.9;
+      if (animationType === BREASTSTROKE) {
         // emit splash on both hand
         this.playMovingSplash(
-          this.playerDir.x * 0.5 + playerQ.x * 0.2, 
+          this.playerDir.x * 0.5 + playerQ.x * breaststrokeSplashPos, 
           0, 
-          this.playerDir.z * 0.5 + playerQ.z * 0.2,
+          this.playerDir.z * 0.5 + playerQ.z * breaststrokeSplashPos,
           5,
           1 + Math.random() * 0.2,
           velocity,
@@ -596,9 +599,9 @@ class WaterParticleEffect {
           1.3
         );
         this.playMovingSplash(
-          this.playerDir.x * 0.5 + playerQ.x * -0.2, 
+          this.playerDir.x * 0.5 + playerQ.x * -breaststrokeSplashPos, 
           0, 
-          this.playerDir.z * 0.5 + playerQ.z * -0.2,
+          this.playerDir.z * 0.5 + playerQ.z * -breaststrokeSplashPos,
           5,
           1 + Math.random() * 0.2,
           velocity,
@@ -606,13 +609,13 @@ class WaterParticleEffect {
           1.3
         );
       }
-      else if (animationType === 'freestyle') {
+      else if (animationType === FREESTYLE) {
         // emit splash on swimming hand
         const right = currentSwimmingHand === 'right' ? 1 : -1;
         this.playMovingSplash(
-          this.playerDir.x * 0.5 + playerQ.x * 0.25 * right, 
+          this.playerDir.x * 0.5 + playerQ.x * freestyleSplashPos * right, 
           - 0.03, 
-          this.playerDir.z * 0.5 + playerQ.z * 0.25 * right,
+          this.playerDir.z * 0.5 + playerQ.z * freestyleSplashPos * right,
           5,
           1.3 + Math.random() * 0.2,
           velocity,
@@ -626,14 +629,14 @@ class WaterParticleEffect {
     this.lastSwimmingHand = currentSwimmingHand; 
 
     if (timestamp - this.lastMovingSplashEmitTime > 30 && currentSwimmingHand) {
-      const rightScale = animationType === 'freestyle' 
+      const rightScale = animationType === FREESTYLE 
                   ? (currentSwimmingHand === 'right' ? 1.2 + Math.random() * 0.2 : 0.8 + Math.random() * 0.2)
                   : 1.5 * this.currentSpeed + Math.random() * 0.2;
-      const leftScale = animationType === 'freestyle' 
+      const leftScale = animationType === FREESTYLE 
                   ? (currentSwimmingHand === 'right' ? 0.8 + Math.random() * 0.2 : 1.2 + Math.random() * 0.2)
                   : 1.5 * this.currentSpeed + Math.random() * 0.2;
       const acc = localVector5.set(0, 0, 0);
-      const speed = animationType === 'freestyle' ? 0.06 : 0.04;
+      const speed = animationType === FREESTYLE ? 0.06 : 0.04;
       const velocity = localVector6.set(speed, -0.001, speed);
       this.playMovingSplash(
         this.playerDir.x * 0.35 + (Math.random() - 0.5) * 0.1 + playerQ.x * 0.15, 
@@ -702,7 +705,7 @@ class WaterParticleEffect {
           else { // when stop moving
             localVector3.x += -this.playerDir.x * 0.25 + (Math.random() - 0.5) * 0.5;
             localVector3.z += -this.playerDir.z * 0.25 + (Math.random() - 0.5) * 0.5;
-            const avatarHeight = this.player.avatar ? this.player.avatar.height : 0;
+            const avatarHeight = this.player.avatar.height;
             localVector3.y -= avatarHeight * 0.6 + (Math.random()) * 0.2;
             this.bubble.info.velocity[i].x = 0;
             this.bubble.info.velocity[i].y = 0.0025 + Math.random() * 0.0025;
@@ -857,7 +860,7 @@ class WaterParticleEffect {
   
 
   update() {
-    if (!this.player) {
+    if (!this.player && !this.player.avatar) {
       return;
     }
     const timestamp = performance.now();
@@ -884,10 +887,9 @@ class WaterParticleEffect {
 
     //#################################### handle moving in water ####################################
     // get player moving speed
-    if (this.player.avatar) {
-      this.currentSpeed = localVector.set(this.player.avatar.velocity.x, 0, this.player.avatar.velocity.z).length();
-      this.currentSpeed *= 0.1;
-    }
+    this.currentSpeed = localVector.set(this.player.avatar.velocity.x, 0, this.player.avatar.velocity.z).length();
+    this.currentSpeed *= 0.1;
+    
     // get player direction 
     localVector2.set(0, 0, -1);
     this.playerDir = localVector2.applyQuaternion(this.player.quaternion);

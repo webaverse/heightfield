@@ -389,10 +389,10 @@ export class WaterMesh extends BufferedMesh {
     }
   }
   updateParticle(contactWater, localPlayer, waterSurfaceHeight) {
-    this.particleEffect.update();
     this.particleEffect.contactWater = contactWater;
     this.particleEffect.player = localPlayer;
     this.particleEffect.waterSurfaceHeight = waterSurfaceHeight;
+    this.particleEffect.update();
   };
 
   update() {
