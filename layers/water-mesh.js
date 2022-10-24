@@ -2,6 +2,11 @@ import * as THREE from 'three';
 import metaversefile from 'metaversefile';
 import {bufferSize, WORLD_BASE_HEIGHT, MIN_WORLD_HEIGHT, MAX_WORLD_HEIGHT} from '../constants.js';
 import WaterParticleEffect from '../water-effect/particle.js';
+import WaterPackage from '../meshes/water-package.js';
+import {textureUrlSpecs, glbUrlSpecs} from '../water-effect/assets.js';
+
+const PARTICLE_TEXTURE_PATHS = textureUrlSpecs.particleTexturePath;
+const PARTICLE_MODEL_PATHS = glbUrlSpecs.particleGLBPath;
 
 const {useProcGenManager, useGeometryBuffering, useLocalPlayer} = metaversefile;
 const {BufferedMesh, GeometryAllocator} = useGeometryBuffering();
@@ -90,8 +95,6 @@ export class WaterMesh extends BufferedMesh {
 
     this.lastSwimmingHand = null;
     this.swimDamping = 1;
-
-    this.particleEffect = new WaterParticleEffect();
   }
   addChunk(chunk, chunkResult) {
     const key = procGenManager.getNodeHash(chunk);
@@ -267,7 +270,6 @@ export class WaterMesh extends BufferedMesh {
       this.gpuTasks.delete(key);
     }
   }
-  
   checkWaterContact(chunkPhysicObject, player, waterSurfaceHeight) {
     // use overlapBox to check whether player contact the water
     this.physics.enableGeometryQueries(chunkPhysicObject);
@@ -416,5 +418,21 @@ export class WaterMesh extends BufferedMesh {
       // handle particle
       this.updateParticle(contactWater, localPlayer, WATER_HEIGHT);
     }
+  }
+  setPackage(pkg) {
+    const particleTextures = pkg.textures['particleTextures'];
+    const particleModels = pkg.models['particleModels'];
+    this.particleEffect = new WaterParticleEffect(particleTextures, particleModels);
+  }
+
+  async waitForLoad() {
+    const baseUrl = import.meta.url.replace(/(\/)[^\/\\]*$/, '$1');
+    const paths = {
+      particleTexturePath: PARTICLE_TEXTURE_PATHS,
+      particleGLBPath: PARTICLE_MODEL_PATHS,
+    };
+    const waterPackage = await WaterPackage.loadUrls(paths);
+
+    this.setPackage(waterPackage);
   }
 }

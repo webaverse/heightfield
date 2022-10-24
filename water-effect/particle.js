@@ -29,7 +29,9 @@ const rotateY = new THREE.Quaternion();
 rotateY.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
 
 class WaterParticleEffect {
-  constructor() {
+  constructor(textures, models) {
+    this.textures = textures;
+    this.models = models;
     this.scene = useInternals().sceneLowPriority;
     this.camera = useInternals().camera;
     this.contactWater = false;
@@ -101,13 +103,6 @@ class WaterParticleEffect {
       }
       else {
         this.rippleMesh.visible = false;
-      }
-    }
-    else {
-      if (this.rippleGroup.children.length > 0) {
-        if (this.rippleGroup.children[0].children.length > 0) {
-          this.rippleMesh = this.rippleGroup.children[0].children[0];
-        }
       }
     }
   }
@@ -575,11 +570,6 @@ class WaterParticleEffect {
       brokenAttribute.needsUpdate = true;
       this.freestyleSplash.material.uniforms.waterSurfacePos.value = this.waterSurfaceHeight;
     }
-    else {
-      if (this.freestyleSplashGroup.children.length > 0 && this.freestyleSplashGroup.children[0].children.length) {
-        this.freestyleSplash = this.freestyleSplashGroup.children[0].children[0];
-      }
-    }
   }
 
   handleSwimmingSplash(timestamp, animationType) {
@@ -863,11 +853,6 @@ class WaterParticleEffect {
       opacityAttribute.needsUpdate = true;
       this.bodyDrop.material.uniforms.cameraBillboardQuaternion.value.copy(this.camera.quaternion);
     }
-    else {
-      if (this.bodyDropGroup.children.length > 0) {
-        this.bodyDrop = this.bodyDropGroup.children[0];
-      }
-    }
   }
   
 
@@ -965,42 +950,67 @@ class WaterParticleEffect {
 
   //########################################################## initialize particle mesh #####################################################
   initRipple() {
-    this.rippleGroup = getDivingRipple();
+    this.rippleGroup = getDivingRipple(this.models.ripple);
+    this.rippleMesh = this.rippleGroup.children[0].children[0];
+    this.rippleMesh.material.uniforms.rippleTexture.value = this.textures.rippleTexture;
+    this.rippleMesh.material.uniforms.voronoiNoiseTexture.value = this.textures.voronoiNoiseTexture;
+    this.rippleMesh.material.uniforms.noiseMap.value = this.textures.noiseMap;
     this.scene.add(this.rippleGroup);
   }
   initDivingLowerSplash() {
     this.divingLowerSplash = getDivingLowerSplash();
+    this.divingLowerSplash.material.uniforms.splashTexture.value = this.textures.splashTexture2;
+    this.divingLowerSplash.material.uniforms.noiseMap.value = this.textures.noiseMap;
     this.scene.add(this.divingLowerSplash);
   }
   initDivingHigherSplash() {
     this.divingHigherSplash = getDivingHigherSplash();
+    this.divingHigherSplash.material.uniforms.splashTexture.value = this.textures.splashTexture3;
+    this.divingHigherSplash.material.uniforms.noiseMap.value = this.textures.noiseMap;
     this.scene.add(this.divingHigherSplash);
   }
   initDroplet() {
     this.dropletgroup = getDroplet();
     this.droplet = this.dropletgroup.children[0];
+    this.droplet.material.uniforms.bubbleTexture1.value = this.textures.bubbleTexture;
     this.dropletRipple = this.dropletgroup.children[1];
+    this.dropletRipple.material.uniforms.noiseMap.value = this.textures.noiseMap;
     this.scene.add(this.dropletgroup);
   }
   initMovingRipple() {
     this.movingRipple = getMovingRipple();
+    this.movingRipple.material.uniforms.noiseMap2.value = this.textures.noiseMap2;
+    this.movingRipple.material.uniforms.noiseMap.value = this.textures.noiseMap;
+    this.movingRipple.material.uniforms.noiseCircleTexture.value = this.textures.noiseCircleTexture;
+    this.movingRipple.material.uniforms.splashTexture2.value = this.textures.splashTexture2;
+    this.movingRipple.material.uniforms.voronoiNoiseTexture.value = this.textures.voronoiNoiseTexture;
     this.scene.add(this.movingRipple);
   }
   initMovingSplash() {
     this.movingSplashGroup = getMovingSplash();
     this.movingSplash = this.movingSplashGroup.children[0];
+    this.movingSplash.material.uniforms.splashTexture.value = this.textures.splashTexture2;
+    this.movingSplash.material.uniforms.noiseMap.value = this.textures.noiseMap;
     this.scene.add(this.movingSplashGroup);
   }
   initfreestyleSplash() {
-    this.freestyleSplashGroup = getFreestyleSplash();
+    this.freestyleSplashGroup = getFreestyleSplash(this.models.dome);
+    this.freestyleSplash = this.freestyleSplashGroup.children[0].children[0];
+    this.freestyleSplash.material.uniforms.circleTexture.value = this.textures.circleTexture;
+    this.freestyleSplash.material.uniforms.noiseMap.value = this.textures.noiseMap;
     this.scene.add(this.freestyleSplashGroup);
   }
   initBubble() {
     this.bubble = getBubble();
+    this.bubble.material.uniforms.bubbleTexture1.value = this.textures.bubbleTexture;
     this.scene.add(this.bubble);
   }
   initbodyDrop() {
     this.bodyDropGroup = getBodyDrop();
+    this.bodyDrop = this.bodyDropGroup.children[0];
+    this.bodyDrop.material.uniforms.splashTexture.value = this.textures.splashTexture2;
+    this.bodyDrop.material.uniforms.noiseMap.value = this.textures.noiseMap;
+    this.bodyDrop.material.uniforms.dropTexture.value = this.textures.dropTexture;
     this.scene.add(this.bodyDropGroup);
   }
 }
