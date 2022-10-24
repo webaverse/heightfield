@@ -404,9 +404,10 @@ export class WaterMesh extends BufferedMesh {
     const currentChunkPhysicObject =
       this.chunkPhysicObjcetMap.get(lastUpdateCoordKey); // use lodTracker.lastUpdateCoord as a key to check which chunk player currently at
 
+    let contactWater = false;
     // handel water physic and swimming action if we get the physicObject of the current chunk
     if (currentChunkPhysicObject) {
-      const contactWater = this.checkWaterContact(
+      contactWater = this.checkWaterContact(
         currentChunkPhysicObject,
         localPlayer,
         WATER_HEIGHT
