@@ -668,13 +668,13 @@ class WaterParticleEffect {
       const playerQ = localVector4.set(this.playerDir.x, this.playerDir.y, this.playerDir.z).applyQuaternion(rotateY);
       const isRight = currentStep === 'right' ? 1 : -1;
       const d = (maxRunningSpeed - this.currentSpeed) * 10;
-      const acc = localVector5.set(0, -0.0022, 0);
-      const velocity = localVector6.set(0.02 / d, 0.03 + Math.random() * 0.01, 0.02 / d);
+      const acc = localVector5.set(0, 0, 0);
+      const velocity = localVector6.set(0.02 / d, 0, 0.02 / d);
       const scale = 0.5 + this.currentSpeed + Math.random() * 0.2;
       this.playMovingSplash(
-        this.playerDir.x * 0.15 + playerQ.x * 0.1 * isRight, 
-        -0.23, 
-        this.playerDir.z * 0.15 + playerQ.z * 0.1 * isRight,
+        this.playerDir.x * 0.2 + playerQ.x * 0.1 * isRight, 
+        -0.01, 
+        this.playerDir.z * 0.2 + playerQ.z * 0.1 * isRight,
         3,
         scale,
         velocity,
