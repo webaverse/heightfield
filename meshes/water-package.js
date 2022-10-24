@@ -47,7 +47,7 @@ class WaterPackage {
     const particleTextures = await Promise.all(particleTextureArray.map(_loadTexture))
     .then(function(arr) {
       const obj = {};
-      for (let i= 0; i < particleTextureArray.length; i++) {
+      for (let i = 0; i < particleTextureArray.length; i ++) {
         obj[particleTextureArray[i].key] = arr[i];
         if (particleTextureArray[i].value[1]) {
           arr[i].wrapS = arr[i].wrapT = THREE.RepeatWrapping;
@@ -60,7 +60,7 @@ class WaterPackage {
     const particleModels = await Promise.all(particleGLBArray.map(_loadModel))
     .then(function(arr) {
       const obj = {};
-      for (let i= 0; i < particleGLBArray.length; i++) {
+      for (let i = 0; i < particleGLBArray.length; i ++) {
         obj[particleGLBArray[i].key] = arr[i];
       }
       return obj;
