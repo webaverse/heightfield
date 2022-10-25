@@ -867,6 +867,9 @@ class WaterParticleEffect {
     const hasSwim = !!swimAction;
 
     //#################################### handle diving water ####################################
+    if (this.contactWater) {
+      this.lastContactWaterTime = timestamp;
+    }
     if (this.contactWater && this.lastContactWater !== this.contactWater) {
       this.fallingSpeed = 0 - this.player.characterPhysics.velocity.y;
       this.divingCollisionPos.set(this.player.position.x, this.waterSurfaceHeight, this.player.position.z);
@@ -885,9 +888,6 @@ class WaterParticleEffect {
     }
 
     //#################################### handle moving in water ####################################
-    if (this.contactWater) {
-      this.lastContactWaterTime = timestamp;
-    }
     // get player moving speed
     this.currentSpeed = localVector.set(this.player.avatar.velocity.x, 0, this.player.avatar.velocity.z).length();
     this.currentSpeed *= 0.1;
