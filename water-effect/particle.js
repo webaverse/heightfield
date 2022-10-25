@@ -132,9 +132,9 @@ class WaterParticleEffect {
     }
    
     // update particle
-    this.rippleMesh && this.rippleMesh.update();
-    this.divingLowerSplash && this.divingLowerSplash.update();
-    this.divingHigherSplash && this.divingHigherSplash.update();
+    this.rippleMesh.update();
+    this.divingLowerSplash.update();
+    this.divingHigherSplash.update();
 
     this.lastContactWater = this.contactWater;
     this.scene.updateMatrixWorld();
