@@ -42,7 +42,7 @@ class WaterParticleEffect {
     sounds.playSound(audioSpec);
   }
 
-  playDivingRipple() {
+  emitDivingRipple() {
     this.rippleMesh.visible = true;
     this.rippleGroup.position.copy(this.divingCollisionPos);
     this.rippleMesh.material.uniforms.vBroken.value = 0.1;
@@ -50,24 +50,7 @@ class WaterParticleEffect {
     this.rippleMesh.material.uniforms.uTime.value = 120;
   }
 
-  updateDivingRipple() {
-    if (this.rippleMesh) {
-      const falling = this.fallingSpeed > 10 ? 10 : this.fallingSpeed;
-      if (this.rippleMesh.material.uniforms.vBroken.value < 1) {
-        if (this.rippleMesh.scale.x > 0.15 * (1 + falling * 0.1)) {
-          this.rippleMesh.material.uniforms.vBroken.value *= 1.025;
-        }
-        this.rippleMesh.scale.x += 0.007 * (1 + falling * 0.1);
-        this.rippleMesh.scale.z += 0.007 * (1 + falling * 0.1);
-        this.rippleMesh.material.uniforms.uTime.value += 0.015;
-      }
-      else {
-        this.rippleMesh.visible = false;
-      }
-    }
-  }
-
-  playDivingLowerSplash() {
+  emitDivingLowerSplash() {
     const brokenAttribute = this.divingLowerSplash.geometry.getAttribute('broken');
     const positionsAttribute = this.divingLowerSplash.geometry.getAttribute('positions');
     const scalesAttribute = this.divingLowerSplash.geometry.getAttribute('scales');
@@ -92,6 +75,113 @@ class WaterParticleEffect {
     positionsAttribute.needsUpdate = true;
     scalesAttribute.needsUpdate = true;
     textureRotationAttribute.needsUpdate = true;
+  }
+
+  emitDivingHigherSplash() {
+    const brokenAttribute = this.divingHigherSplash.geometry.getAttribute('broken');
+    const positionsAttribute = this.divingHigherSplash.geometry.getAttribute('positions');
+    const scalesAttribute = this.divingHigherSplash.geometry.getAttribute('scales');
+    const rotationAttribute = this.divingHigherSplash.geometry.getAttribute('rotation');
+    const particleCount = this.divingHigherSplash.info.particleCount;
+    for (let i = 0; i < particleCount; i ++) {
+      this.divingHigherSplash.info.velocity[i].y = 0.08 + 0.035 * Math.random();
+      brokenAttribute.setX(i, 0.2 + Math.random() * 0.1);
+      scalesAttribute.setX(i, 0.5 + Math.random() * 0.5);
+      const theta = 2. * Math.PI * i / particleCount;
+      positionsAttribute.setXYZ(
+        i,
+        this.divingCollisionPos.x + Math.sin(theta) * 0.03,
+        this.divingCollisionPos.y - 1.5,
+        this.divingCollisionPos.z + Math.cos(theta) * 0.03
+      ) 
+      const n = Math.cos(theta) > 0 ? 1 : -1;
+      rotationAttribute.setXYZ(i, -Math.sin(theta) * n * (Math.PI / 2)); 
+    }
+    brokenAttribute.needsUpdate = true;
+    positionsAttribute.needsUpdate = true;
+    scalesAttribute.needsUpdate = true;
+    rotationAttribute.needsUpdate = true;
+  }
+
+  
+
+  update() {
+    if (!this.player && !this.player.avatar) {
+      return;
+    }
+    const timestamp = performance.now();
+
+    //#################################### handle diving water ####################################
+    if (this.contactWater) {
+      this.lastContactWaterTime = timestamp;
+    }
+    if (this.contactWater && this.lastContactWater !== this.contactWater) {
+      this.fallingSpeed = 0 - this.player.characterPhysics.velocity.y;
+      this.divingCollisionPos.set(this.player.position.x, this.waterSurfaceHeight, this.player.position.z);
+
+      // play the diving particle
+      if (this.fallingSpeed > 1) {
+        this.playDivingSfx();
+        this.rippleMesh && this.emitDivingRipple();
+        this.divingLowerSplash && this.emitDivingLowerSplash();
+        this.divingHigherSplash && this.emitDivingHigherSplash();
+      }
+    }
+    else {
+      this.fallingSpeed = 0;
+    }
+   
+    // update particle
+    this.rippleMesh && this.rippleMesh.update();
+    this.divingLowerSplash && this.divingLowerSplash.update();
+    this.divingHigherSplash && this.divingHigherSplash.update();
+
+    this.lastContactWater = this.contactWater;
+    this.scene.updateMatrixWorld();
+    
+  }
+
+  //########################################################## initialize particle mesh #####################################################
+  initRipple() {
+    this.rippleGroup = getDivingRipple(this.models.ripple);
+    this.rippleMesh = this.rippleGroup.children[0].children[0];
+    this.rippleMesh.material.uniforms.rippleTexture.value = this.textures.rippleTexture;
+    this.rippleMesh.material.uniforms.voronoiNoiseTexture.value = this.textures.voronoiNoiseTexture;
+    this.rippleMesh.material.uniforms.noiseMap.value = this.textures.noiseMap;
+    this.rippleMesh.update = () => this.updateDivingRipple();
+    this.scene.add(this.rippleGroup);
+  }
+  initDivingLowerSplash() {
+    this.divingLowerSplash = getDivingLowerSplash();
+    this.divingLowerSplash.material.uniforms.splashTexture.value = this.textures.splashTexture2;
+    this.divingLowerSplash.material.uniforms.noiseMap.value = this.textures.noiseMap;
+    this.divingLowerSplash.update = () => this.updateDivingLowerSplash();
+    this.scene.add(this.divingLowerSplash);
+  }
+  initDivingHigherSplash() {
+    this.divingHigherSplash = getDivingHigherSplash();
+    this.divingHigherSplash.material.uniforms.splashTexture.value = this.textures.splashTexture3;
+    this.divingHigherSplash.material.uniforms.noiseMap.value = this.textures.noiseMap;
+    this.divingHigherSplash.update = () => this.updateDivingHigherSplash();
+    this.scene.add(this.divingHigherSplash);
+  }
+
+  //########################################################## update particle mesh #####################################################
+  updateDivingRipple() {
+    if (this.rippleMesh) {
+      const falling = this.fallingSpeed > 10 ? 10 : this.fallingSpeed;
+      if (this.rippleMesh.material.uniforms.vBroken.value < 1) {
+        if (this.rippleMesh.scale.x > 0.15 * (1 + falling * 0.1)) {
+          this.rippleMesh.material.uniforms.vBroken.value *= 1.025;
+        }
+        this.rippleMesh.scale.x += 0.007 * (1 + falling * 0.1);
+        this.rippleMesh.scale.z += 0.007 * (1 + falling * 0.1);
+        this.rippleMesh.material.uniforms.uTime.value += 0.015;
+      }
+      else {
+        this.rippleMesh.visible = false;
+      }
+    }
   }
 
   updateDivingLowerSplash() {
@@ -125,32 +215,6 @@ class WaterParticleEffect {
     }
   }
 
-  playDivingHigherSplash() {
-    const brokenAttribute = this.divingHigherSplash.geometry.getAttribute('broken');
-    const positionsAttribute = this.divingHigherSplash.geometry.getAttribute('positions');
-    const scalesAttribute = this.divingHigherSplash.geometry.getAttribute('scales');
-    const rotationAttribute = this.divingHigherSplash.geometry.getAttribute('rotation');
-    const particleCount = this.divingHigherSplash.info.particleCount;
-    for (let i = 0; i < particleCount; i ++) {
-      this.divingHigherSplash.info.velocity[i].y = 0.08 + 0.035 * Math.random();
-      brokenAttribute.setX(i, 0.2 + Math.random() * 0.1);
-      scalesAttribute.setX(i, 0.5 + Math.random() * 0.5);
-      const theta = 2. * Math.PI * i / particleCount;
-      positionsAttribute.setXYZ(
-        i,
-        this.divingCollisionPos.x + Math.sin(theta) * 0.03,
-        this.divingCollisionPos.y - 1.5,
-        this.divingCollisionPos.z + Math.cos(theta) * 0.03
-      ) 
-      const n = Math.cos(theta) > 0 ? 1 : -1;
-      rotationAttribute.setXYZ(i, -Math.sin(theta) * n * (Math.PI / 2)); 
-    }
-    brokenAttribute.needsUpdate = true;
-    positionsAttribute.needsUpdate = true;
-    scalesAttribute.needsUpdate = true;
-    rotationAttribute.needsUpdate = true;
-  }
-
   updateDivingHigherSplash() {
     if (this.divingHigherSplash) { 
       const brokenAttribute = this.divingHigherSplash.geometry.getAttribute('broken');
@@ -177,64 +241,6 @@ class WaterParticleEffect {
       rotationAttribute.needsUpdate = true;
       this.divingHigherSplash.material.uniforms.waterSurfacePos.value = this.waterSurfaceHeight;
     }
-  }
-
-  update() {
-    if (!this.player && !this.player.avatar) {
-      return;
-    }
-    const timestamp = performance.now();
-
-    //#################################### handle diving water ####################################
-    if (this.contactWater) {
-      this.lastContactWaterTime = timestamp;
-    }
-    if (this.contactWater && this.lastContactWater !== this.contactWater) {
-      this.fallingSpeed = 0 - this.player.characterPhysics.velocity.y;
-      this.divingCollisionPos.set(this.player.position.x, this.waterSurfaceHeight, this.player.position.z);
-
-      // play the diving particle
-      if (this.fallingSpeed > 1) {
-        this.playDivingSfx();
-        this.rippleMesh && this.playDivingRipple();
-        this.divingLowerSplash && this.playDivingLowerSplash();
-        this.divingHigherSplash && this.playDivingHigherSplash();
-      }
-    }
-    else {
-      this.fallingSpeed = 0;
-    }
-   
-    // update particle
-    this.updateDivingRipple();
-    this.updateDivingLowerSplash();
-    this.updateDivingHigherSplash();
-
-    this.lastContactWater = this.contactWater;
-    this.scene.updateMatrixWorld();
-    
-  }
-
-  //########################################################## initialize particle mesh #####################################################
-  initRipple() {
-    this.rippleGroup = getDivingRipple(this.models.ripple);
-    this.rippleMesh = this.rippleGroup.children[0].children[0];
-    this.rippleMesh.material.uniforms.rippleTexture.value = this.textures.rippleTexture;
-    this.rippleMesh.material.uniforms.voronoiNoiseTexture.value = this.textures.voronoiNoiseTexture;
-    this.rippleMesh.material.uniforms.noiseMap.value = this.textures.noiseMap;
-    this.scene.add(this.rippleGroup);
-  }
-  initDivingLowerSplash() {
-    this.divingLowerSplash = getDivingLowerSplash();
-    this.divingLowerSplash.material.uniforms.splashTexture.value = this.textures.splashTexture2;
-    this.divingLowerSplash.material.uniforms.noiseMap.value = this.textures.noiseMap;
-    this.scene.add(this.divingLowerSplash);
-  }
-  initDivingHigherSplash() {
-    this.divingHigherSplash = getDivingHigherSplash();
-    this.divingHigherSplash.material.uniforms.splashTexture.value = this.textures.splashTexture3;
-    this.divingHigherSplash.material.uniforms.noiseMap.value = this.textures.noiseMap;
-    this.scene.add(this.divingHigherSplash);
   }
 }
 
