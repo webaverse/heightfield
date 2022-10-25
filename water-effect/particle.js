@@ -793,16 +793,16 @@ class WaterParticleEffect {
         if (brokenAttribute.getX(i) >= 1) {
           positionsAttribute.setXYZ(
             i,
-            (Math.random() - 0.5) * 0.25,
-            -0.3 - Math.random() * 0.6,
-            (Math.random() - 0.5) * 0.25
+            (Math.random() - 0.5) * 0.3,
+            -0.2 - Math.random() * 0.6,
+            (Math.random() - 0.5) * 0.3
           )
           brokenAttribute.setX(i, 0.35 + 0.5 * Math.random());
           scalesAttribute.setXYZ(
             i, 
-            4.5 + Math.random() * 4.5, 
-            4.5 + Math.random() * 4.5,  
-            4.5 + Math.random() * 4.5
+            3 + Math.random() * 3, 
+            3 + Math.random() * 3,  
+            3 + Math.random() * 3
           );
           count ++;
         }
