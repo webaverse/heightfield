@@ -1,6 +1,12 @@
 import * as THREE from 'three';
 import metaversefile from 'metaversefile';
 import {bufferSize, WORLD_BASE_HEIGHT, MIN_WORLD_HEIGHT, MAX_WORLD_HEIGHT} from '../constants.js';
+import WaterParticleEffect from '../water-effect/particle.js';
+import WaterPackage from '../meshes/water-package.js';
+import {textureUrlSpecs, glbUrlSpecs} from '../water-effect/assets.js';
+
+const PARTICLE_TEXTURE_PATHS = textureUrlSpecs.particleTexturePath;
+const PARTICLE_MODEL_PATHS = glbUrlSpecs.particleGLBPath;
 
 const {useProcGenManager, useGeometryBuffering, useLocalPlayer} = metaversefile;
 const {BufferedMesh, GeometryAllocator} = useGeometryBuffering();
@@ -264,7 +270,6 @@ export class WaterMesh extends BufferedMesh {
       this.gpuTasks.delete(key);
     }
   }
-
   checkWaterContact(chunkPhysicObject, player, waterSurfaceHeight) {
     // use overlapBox to check whether player contact the water
     this.physics.enableGeometryQueries(chunkPhysicObject);
@@ -340,7 +345,7 @@ export class WaterMesh extends BufferedMesh {
     };
 
     if (contactWater) {
-      this.material.color.setHex(0x0000ff); // for testing
+      this.material.color.setHex(0x1CEAD9); // for testing
 
       const _calculateSwimHeight = () => {
         const outsideWaterRange =
@@ -383,6 +388,12 @@ export class WaterMesh extends BufferedMesh {
       swimAction.swimDamping = this.swimDamping;
     }
   }
+  updateParticle(contactWater, localPlayer, waterSurfaceHeight) {
+    this.particleEffect.contactWater = contactWater;
+    this.particleEffect.player = localPlayer;
+    this.particleEffect.waterSurfaceHeight = waterSurfaceHeight;
+    this.particleEffect.update();
+  };
 
   update() {
     const localPlayer = useLocalPlayer();
@@ -393,9 +404,10 @@ export class WaterMesh extends BufferedMesh {
     const currentChunkPhysicObject =
       this.chunkPhysicObjcetMap.get(lastUpdateCoordKey); // use lodTracker.lastUpdateCoord as a key to check which chunk player currently at
 
+    let contactWater = false;
     // handel water physic and swimming action if we get the physicObject of the current chunk
     if (currentChunkPhysicObject) {
-      const contactWater = this.checkWaterContact(
+      contactWater = this.checkWaterContact(
         currentChunkPhysicObject,
         localPlayer,
         WATER_HEIGHT
@@ -404,5 +416,22 @@ export class WaterMesh extends BufferedMesh {
       // handle swimming action
       this.handleSwimAction(contactWater, localPlayer, WATER_HEIGHT);
     }
+    // handle particle
+    this.updateParticle(contactWater, localPlayer, WATER_HEIGHT);
+  }
+  setPackage(pkg) {
+    const particleTextures = pkg.textures['particleTextures'];
+    const particleModels = pkg.models['particleModels'];
+    this.particleEffect = new WaterParticleEffect(particleTextures, particleModels);
+  }
+
+  async waitForLoad() {
+    const paths = {
+      particleTexturePath: PARTICLE_TEXTURE_PATHS,
+      particleGLBPath: PARTICLE_MODEL_PATHS,
+    };
+    const waterPackage = await WaterPackage.loadUrls(paths);
+
+    this.setPackage(waterPackage);
   }
 }

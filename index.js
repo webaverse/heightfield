@@ -203,6 +203,7 @@ export default e => {
         litterMesh.waitForLoad(),
         grassMesh.waitForLoad(),
         hudMesh.waitForLoad(),
+        waterMesh.waitForLoad(),
       ]);
     };
     await _waitForLoad();
