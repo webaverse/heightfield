@@ -486,7 +486,6 @@ const getBodyDrop = () => {
   bodyDrop.info = {
     particleCount: particleCount,
     dropCount: particleCount / 2,
-    lastContactWater: -Infinity
   }
   const idAttribute = bodyDrop.geometry.getAttribute('id');
   for (let i = 0; i < particleCount; i++) {

@@ -818,11 +818,8 @@ class WaterParticleEffect {
     opacityAttribute.needsUpdate = true;
   }
 
-  updateBodyDrop(timestamp) {
+  updateBodyDrop() {
     if (this.bodyDrop) {
-      if (this.contactWater) {
-        this.bodyDrop.info.lastContactWater = timestamp;
-      }
       this.bodyDropGroup.position.copy(this.player.position);
       const particleCount = this.bodyDrop.info.particleCount;
       const positionsAttribute = this.bodyDrop.geometry.getAttribute('positions');
@@ -888,6 +885,9 @@ class WaterParticleEffect {
     }
 
     //#################################### handle moving in water ####################################
+    if (this.contactWater) {
+      this.lastContactWaterTime = timestamp;
+    }
     // get player moving speed
     this.currentSpeed = localVector.set(this.player.avatar.velocity.x, 0, this.player.avatar.velocity.z).length();
     this.currentSpeed *= 0.1;
@@ -928,9 +928,8 @@ class WaterParticleEffect {
 
     //#################################### handle wet body ####################################
     if (this.bodyDrop) {
-      const lastContactWaterTime = this.bodyDrop.info.lastContactWater;
       const walkInWater = this.contactWater && !hasSwim;
-      const walkOnLand = timestamp - lastContactWaterTime > 100 && timestamp - lastContactWaterTime < 10000;
+      const walkOnLand = timestamp - this.lastContactWaterTime > 100 && timestamp - this.lastContactWaterTime < 10000;
       const playParticle = walkInWater || walkOnLand;
       playParticle && this.playBodyDrop();
     }
@@ -945,7 +944,7 @@ class WaterParticleEffect {
     this.updateMovingSplash();
     this.updateBubble();
     this.updateFreestyleSplash();
-    this.updateBodyDrop(timestamp);
+    this.updateBodyDrop();
     
     this.lastContactWater = this.contactWater;
     this.scene.updateMatrixWorld();
