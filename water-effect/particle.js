@@ -13,8 +13,6 @@ const soundFiles = sounds.getSoundFiles();
 // constants
 const regex = new RegExp('^water/jump_water[0-9]*.wav$');
 const divingCandidateAudios = soundFiles.water.filter((f) => regex.test(f.name));
-const rotateY = new THREE.Quaternion();
-rotateY.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
 
 class WaterParticleEffect {
   constructor(textures, models) {
