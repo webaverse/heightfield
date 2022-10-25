@@ -103,8 +103,6 @@ class WaterParticleEffect {
     rotationAttribute.needsUpdate = true;
   }
 
-  
-
   update() {
     if (!this.player && !this.player.avatar) {
       return;
@@ -138,7 +136,6 @@ class WaterParticleEffect {
 
     this.lastContactWater = this.contactWater;
     this.scene.updateMatrixWorld();
-    
   }
 
   //########################################################## initialize particle mesh #####################################################
