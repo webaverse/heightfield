@@ -67,7 +67,8 @@ class WaterParticleEffect {
         this.divingCollisionPos.z + this.divingLowerSplash.info.velocity[i].z
       );
       this.divingLowerSplash.info.velocity[i].divideScalar(5);
-      scalesAttribute.setX(i, 0.6);
+      const scale = 0.6; 
+      scalesAttribute.setX(i, scale);
       textureRotationAttribute.setX(i, Math.random() * 2);
       brokenAttribute.setX(i, 0.2);
     }
