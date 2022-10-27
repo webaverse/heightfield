@@ -64,7 +64,9 @@ const getDivingLowerSplash = () => {
   attributeSpecs.push({name: 'broken', itemSize: 1});
   attributeSpecs.push({name: 'scales', itemSize: 1});
   attributeSpecs.push({name: 'textureRotation', itemSize: 1});
-  const geometry2 = new THREE.PlaneGeometry(0.15, 0.25);
+  const width = 0.15;
+  const height = 0.25;
+  const geometry2 = new THREE.PlaneGeometry(width, height);
   const geometry = _getGeometry(geometry2, attributeSpecs, particleCount);
   const material= new THREE.ShaderMaterial({
     uniforms: {
@@ -108,7 +110,9 @@ const getDivingHigherSplash = () => {
   attributeSpecs.push({name: 'broken', itemSize: 1});
   attributeSpecs.push({name: 'scales', itemSize: 1});
   attributeSpecs.push({name: 'rotation', itemSize: 1});
-  const geometry2 = new THREE.PlaneGeometry(0.25, 0.7);
+  const width = 0.25;
+  const height = 0.7;
+  const geometry2 = new THREE.PlaneGeometry(width, height);
   const geometry = _getGeometry(geometry2, attributeSpecs, particleCount);
   const material= new THREE.ShaderMaterial({
     uniforms: {

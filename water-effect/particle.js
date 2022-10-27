@@ -163,7 +163,7 @@ class WaterParticleEffect {
     this.scene.add(this.divingHigherSplash);
   }
 
-  //########################################################## update particle mesh #####################################################
+  //########################################################## update function of particle mesh #####################################################
   updateDivingRipple() {
     if (this.rippleMesh) {
       const falling = this.fallingSpeed > 10 ? 10 : this.fallingSpeed;
