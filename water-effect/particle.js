@@ -167,9 +167,10 @@ class WaterParticleEffect {
   updateDivingRipple() {
     if (this.rippleMesh) {
       const falling = this.fallingSpeed > 10 ? 10 : this.fallingSpeed;
+      const distortionRate = 1.025;
       if (this.rippleMesh.material.uniforms.vBroken.value < 1) {
         if (this.rippleMesh.scale.x > 0.15 * (1 + falling * 0.1)) {
-          this.rippleMesh.material.uniforms.vBroken.value *= 1.025;
+          this.rippleMesh.material.uniforms.vBroken.value *= distortionRate;
         }
         this.rippleMesh.scale.x += 0.007 * (1 + falling * 0.1);
         this.rippleMesh.scale.z += 0.007 * (1 + falling * 0.1);
