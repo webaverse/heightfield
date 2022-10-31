@@ -97,7 +97,7 @@ class WaterParticleEffect {
     for (let i = 0; i < particleCount; i ++) {
       const vy = 0.09 + Math.floor(i * 0.5) * 0.005;
       const initDistortion = 0.18 + Math.random() * 0.13;
-      const initScale = 0.5 + Math.random() * 0.5;
+      const initScale = 0.45 + Math.random() * 0.45;
       this.divingHigherSplash.info.velocity[i] = vy;
       brokenAttribute.setX(i, initDistortion);
       scalesAttribute.setX(i, initScale);
