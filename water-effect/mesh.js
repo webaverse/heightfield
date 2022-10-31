@@ -139,9 +139,6 @@ const getDivingHigherSplash = () => {
     velocity: [particleCount],
     acc: -0.0035
   }
-  // for (let i = 0; i < particleCount; i++) {
-  //   divingHigherSplash.info.velocity[i] = new THREE.Vector3();
-  // }
   return divingHigherSplash;
 }
 
