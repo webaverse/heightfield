@@ -13,6 +13,8 @@ const soundFiles = sounds.getSoundFiles();
 // constants
 const regex = new RegExp('^water/jump_water[0-9]*.wav$');
 const divingCandidateAudios = soundFiles.water.filter((f) => regex.test(f.name));
+const MAX_DISTORTION_RANGE = 1;
+const DIVING_FALLING_SPEED_THRESHOLD = 1;
 
 class WaterParticleEffect {
   constructor(textures, models) {
@@ -45,9 +47,12 @@ class WaterParticleEffect {
   emitDivingRipple() {
     this.rippleMesh.visible = true;
     this.rippleGroup.position.copy(this.divingCollisionPos);
-    this.rippleMesh.material.uniforms.vBroken.value = 0.1;
-    this.rippleMesh.scale.set(0.25, 1, 0.25);
-    this.rippleMesh.material.uniforms.uTime.value = 120;
+    const initDistortion = 0.1;
+    const initScale = 0.25;
+    const initTime = 120;
+    this.rippleMesh.material.uniforms.vBroken.value = initDistortion;
+    this.rippleMesh.scale.set(initScale, 1, initScale);
+    this.rippleMesh.material.uniforms.uTime.value = initTime;
   }
 
   emitDivingLowerSplash() {
@@ -57,20 +62,25 @@ class WaterParticleEffect {
     const textureRotationAttribute = this.divingLowerSplash.geometry.getAttribute('textureRotation');
     const particleCount = this.divingLowerSplash.info.particleCount;
     for (let i = 0; i < particleCount; i ++) {
-      this.divingLowerSplash.info.velocity[i].x = Math.sin(i) * .055 + (Math.random() - 0.5) * 0.001;
-      this.divingLowerSplash.info.velocity[i].y = 0.12 + 0.01 * Math.random();
-      this.divingLowerSplash.info.velocity[i].z = Math.cos(i) * .055 + (Math.random() - 0.5) * 0.001;
+      const radius = 0.055;
+      const vx = Math.sin(i) * radius + (Math.random() - 0.5) * 0.001;
+      const vy = 0.12 + 0.01 * Math.random();
+      const vz = Math.cos(i) * radius + (Math.random() - 0.5) * 0.001;
+      this.divingLowerSplash.info.velocity[i].x = vx;
+      this.divingLowerSplash.info.velocity[i].y = vy;
+      this.divingLowerSplash.info.velocity[i].z = vz;
       positionsAttribute.setXYZ(  
         i, 
-        this.divingCollisionPos.x + this.divingLowerSplash.info.velocity[i].x,
+        this.divingCollisionPos.x + vx,
         this.divingCollisionPos.y + 0.1 * Math.random(),
-        this.divingCollisionPos.z + this.divingLowerSplash.info.velocity[i].z
+        this.divingCollisionPos.z + vz
       );
       this.divingLowerSplash.info.velocity[i].divideScalar(5);
-      const scale = 0.6; 
-      scalesAttribute.setX(i, scale);
+      const initScale = 0.6; 
+      const initDistortion = 0.1 * Math.random() + 0.16;
+      scalesAttribute.setX(i, initScale);
       textureRotationAttribute.setX(i, Math.random() * 2);
-      brokenAttribute.setX(i, 0.2);
+      brokenAttribute.setX(i, initDistortion);
     }
     brokenAttribute.needsUpdate = true;
     positionsAttribute.needsUpdate = true;
@@ -85,15 +95,21 @@ class WaterParticleEffect {
     const rotationAttribute = this.divingHigherSplash.geometry.getAttribute('rotation');
     const particleCount = this.divingHigherSplash.info.particleCount;
     for (let i = 0; i < particleCount; i ++) {
-      this.divingHigherSplash.info.velocity[i].y = 0.08 + 0.035 * Math.random();
-      brokenAttribute.setX(i, 0.2 + Math.random() * 0.1);
-      scalesAttribute.setX(i, 0.5 + Math.random() * 0.5);
+      const vy = 0.09 + Math.floor(i * 0.5) * 0.005;
+      const initDistortion = 0.18 + Math.random() * 0.13;
+      const initScale = 0.5 + Math.random() * 0.5;
+      this.divingHigherSplash.info.velocity[i] = vy;
+      brokenAttribute.setX(i, initDistortion);
+      scalesAttribute.setX(i, initScale);
+
+      const radius = 0.03;
+      const initialHeight = -1.5;
       const theta = 2. * Math.PI * i / particleCount;
       positionsAttribute.setXYZ(
         i,
-        this.divingCollisionPos.x + Math.sin(theta) * 0.03,
-        this.divingCollisionPos.y - 1.5,
-        this.divingCollisionPos.z + Math.cos(theta) * 0.03
+        this.divingCollisionPos.x + Math.sin(theta) * radius,
+        this.divingCollisionPos.y + initialHeight,
+        this.divingCollisionPos.z + Math.cos(theta) * radius
       ) 
       const n = Math.cos(theta) > 0 ? 1 : -1;
       rotationAttribute.setXYZ(i, -Math.sin(theta) * n * (Math.PI / 2)); 
@@ -119,7 +135,7 @@ class WaterParticleEffect {
       this.divingCollisionPos.set(this.player.position.x, this.waterSurfaceHeight, this.player.position.z);
 
       // play the diving particle
-      if (this.fallingSpeed > 1) {
+      if (this.fallingSpeed > DIVING_FALLING_SPEED_THRESHOLD) { // only play the particle when falling speed is big enough
         this.playDivingSfx();
         this.rippleMesh && this.emitDivingRipple();
         this.divingLowerSplash && this.emitDivingLowerSplash();
@@ -167,16 +183,18 @@ class WaterParticleEffect {
   //########################################################## update function of particle mesh #####################################################
   updateDivingRipple() {
     if (this.rippleMesh) {
-      const falling = this.fallingSpeed > 10 ? 10 : this.fallingSpeed;
+      const falling = this.fallingSpeed > 10 ? 10 : this.fallingSpeed; // clamp fallingSpeed from 0 to 10
       const distortionRate = 1.025;
       const distortionThreshold = 0.15 * (1 + falling * 0.1);
-      if (this.rippleMesh.material.uniforms.vBroken.value < 1) {
+      const scaleRate = 0.007 * (1 + falling * 0.1); //increase scale based on fallind speed
+      const speed = 0.015;
+      if (this.rippleMesh.material.uniforms.vBroken.value < MAX_DISTORTION_RANGE) {
         if (this.rippleMesh.scale.x > distortionThreshold) {
           this.rippleMesh.material.uniforms.vBroken.value *= distortionRate;
         }
-        this.rippleMesh.scale.x += 0.007 * (1 + falling * 0.1);
-        this.rippleMesh.scale.z += 0.007 * (1 + falling * 0.1);
-        this.rippleMesh.material.uniforms.uTime.value += 0.015;
+        this.rippleMesh.scale.x += scaleRate;
+        this.rippleMesh.scale.z += scaleRate;
+        this.rippleMesh.material.uniforms.uTime.value += speed;
       }
       else {
         this.rippleMesh.visible = false;
@@ -190,13 +208,17 @@ class WaterParticleEffect {
       const positionsAttribute = this.divingLowerSplash.geometry.getAttribute('positions');
       const scalesAttribute = this.divingLowerSplash.geometry.getAttribute('scales');
       const particleCount = this.divingLowerSplash.info.particleCount;
+      const initScale = 0.6;
+      const scaleThreshold = 2.1;
+      const distortionRate = 0.015;
+      const scaleRate = 0.2;
       for (let i = 0; i < particleCount; i ++) {
-        if (scalesAttribute.getX(i) >= 0.6 && scalesAttribute.getX(i) < 2.1) {
-          scalesAttribute.setX(i, scalesAttribute.getX(i) + 0.2);
+        if (scalesAttribute.getX(i) >= initScale && scalesAttribute.getX(i) < scaleThreshold) {
+          scalesAttribute.setX(i, scalesAttribute.getX(i) + scaleRate);
         }
-        if (scalesAttribute.getX(i) >= 2.1) {
-          if (brokenAttribute.getX(i) < 1) {
-            brokenAttribute.setX(i, brokenAttribute.getX(i) + 0.015);
+        else if (scalesAttribute.getX(i) >= scaleThreshold) {
+          if (brokenAttribute.getX(i) < MAX_DISTORTION_RANGE) {
+            brokenAttribute.setX(i, brokenAttribute.getX(i) + distortionRate);
             positionsAttribute.setXYZ(  
               i, 
               positionsAttribute.getX(i) + this.divingLowerSplash.info.velocity[i].x,
@@ -222,16 +244,20 @@ class WaterParticleEffect {
       const scalesAttribute = this.divingHigherSplash.geometry.getAttribute('scales');
       const rotationAttribute = this.divingHigherSplash.geometry.getAttribute('rotation');
       const particleCount = this.divingHigherSplash.info.particleCount;
+      const distortionRate = 1.03;
+      const scaleRate = 0.02;
+      const ascendingSpeed = 0.08;
+      const positionThreshold = this.divingCollisionPos.y - 0.7;
       for (let i = 0; i < particleCount; i ++) {
-        if (brokenAttribute.getX(i) < 1) {
-          if (positionsAttribute.getY(i) >= this.divingCollisionPos.y - 0.7 && scalesAttribute.getX(i) > 0) {
-            brokenAttribute.setX(i, brokenAttribute.getX(i) * 1.03);
-            scalesAttribute.setX(i, scalesAttribute.getX(i) + 0.02);
-            positionsAttribute.setY(i, positionsAttribute.getY(i) + this.divingHigherSplash.info.velocity[i].y);
-            this.divingHigherSplash.info.velocity[i].add(this.divingHigherSplash.info.acc);
+        if (brokenAttribute.getX(i) < MAX_DISTORTION_RANGE) {
+          if (positionsAttribute.getY(i) >= positionThreshold) {
+            brokenAttribute.setX(i, brokenAttribute.getX(i) * distortionRate);
+            scalesAttribute.setX(i, scalesAttribute.getX(i) + scaleRate);
+            positionsAttribute.setY(i, positionsAttribute.getY(i) + this.divingHigherSplash.info.velocity[i]);
+            this.divingHigherSplash.info.velocity[i] += this.divingHigherSplash.info.acc;
           }
           else {
-            positionsAttribute.setY(i, positionsAttribute.getY(i) + 0.08);
+            positionsAttribute.setY(i, positionsAttribute.getY(i) + ascendingSpeed);
           } 
         }
       }

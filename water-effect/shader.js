@@ -34,7 +34,8 @@ const divingRippleFragment = `\
       voronoiNoiseTexture,
       mainUv
     );
-    vec2 distortionUv = mix(vUv, mainUv + voronoiNoise.rg, 0.3);
+    float distortionAmount = 0.3;
+    vec2 distortionUv = mix(vUv, mainUv + voronoiNoise.rg, distortionAmount);
     vec4 ripple = texture2D(
       rippleTexture,
       (distortionUv + mainUv) / 2.
@@ -50,11 +51,9 @@ const divingRippleFragment = `\
       gl_FragColor.a = 0.;
       discard;
     }
-    gl_FragColor.a *= 1.5;
     float broken = abs(sin(1.0 - vBroken)) - noise.g;
     float noiseThreshold = 0.0001;
     if (broken < noiseThreshold) discard;
-    gl_FragColor.rgb *= 0.8;
     ${THREE.ShaderChunk.logdepthbuf_fragment}
   }
 `;
@@ -110,29 +109,24 @@ const divingLowerSplashFragment = `\
   void main() {
     float mid = 0.5;
     vec2 rotated = vec2(
-      cos(vTextureRotation * PI) * (vUv.x - mid) * 1.1 - sin(vTextureRotation * PI) * (vUv.y - mid) * 1.1 + mid,
-      cos(vTextureRotation * PI) * (vUv.y - mid) * 1.1 + sin(vTextureRotation * PI) * (vUv.x - mid) * 1.1 + mid
+      cos(vTextureRotation * PI) * (vUv.x - mid) - sin(vTextureRotation * PI) * (vUv.y - mid) + mid,
+      cos(vTextureRotation * PI) * (vUv.y - mid) + sin(vTextureRotation * PI) * (vUv.x - mid) + mid
     );
     vec4 splash = texture2D(
       splashTexture,
       rotated
     );
-    if (splash.r > 0.1) {
+    float colorFilter = 0.1;
+    if (splash.r > colorFilter) {
       gl_FragColor = vec4(0.9, 0.9, 0.9, 1.0);
     }
     if (vPos.y < waterSurfacePos) {
       gl_FragColor.a = 0.;
     }
 
-    float broken = abs(sin(1.0 - vBroken)) - texture2D( noiseMap, rotated * noiseScale ).g;
+    float broken = abs(sin(1.0 - vBroken)) - texture2D(noiseMap, rotated * noiseScale).g;
     float noiseThreshold = 0.0001;
     if (broken < noiseThreshold) discard;
-    if (gl_FragColor.a > 0.) {
-      gl_FragColor = vec4(0.9, 0.9, 0.9, 1.0);
-    }
-    else {
-      discard;
-    }
     ${THREE.ShaderChunk.logdepthbuf_fragment}
   }
 `
@@ -186,8 +180,12 @@ const divingHigherSplashFragment = `\
       vUv
     );
     gl_FragColor = splash;
-    if (splash.r < 0.5) {
+    float colorFilter = 0.3;
+    if (splash.r < colorFilter) {
       discard;
+    }
+    else {
+      gl_FragColor = vec4(0.9, 0.9, 0.9, 1.0);
     }
     if (vPos.y < waterSurfacePos) {
       gl_FragColor.a = 0.;
@@ -196,12 +194,6 @@ const divingHigherSplashFragment = `\
     float broken = abs(sin(1.0 - vBroken)) - texture2D(noiseMap, vUv).g;
     float noiseThreshold = 0.0001;
     if (broken < noiseThreshold) discard;
-    if (gl_FragColor.a > 0.) {
-      gl_FragColor = vec4(0.6, 0.6, 0.6, 1.0);
-    }
-    else {
-      discard;
-    }
     ${THREE.ShaderChunk.logdepthbuf_fragment}
   }
 `
