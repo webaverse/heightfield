@@ -77,7 +77,7 @@ class WaterParticleEffect {
       );
       this.divingLowerSplash.info.velocity[i].divideScalar(5);
       const initScale = 0.6; 
-      const initDistortion = 0.1 * Math.random() + 0.16;
+      const initDistortion = 0.03 * Math.random() + 0.19;
       scalesAttribute.setX(i, initScale);
       textureRotationAttribute.setX(i, Math.random() * 2);
       brokenAttribute.setX(i, initDistortion);
