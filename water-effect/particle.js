@@ -187,14 +187,14 @@ class WaterParticleEffect {
       const distortionRate = 1.025;
       const distortionThreshold = 0.15 * (1 + falling * 0.1);
       const scaleRate = 0.007 * (1 + falling * 0.1); //increase scale based on fallind speed
-      const speed = 0.015;
+      const animationSpeed = 0.015;
       if (this.rippleMesh.material.uniforms.vBroken.value < MAX_DISTORTION_RANGE) {
         if (this.rippleMesh.scale.x > distortionThreshold) {
           this.rippleMesh.material.uniforms.vBroken.value *= distortionRate;
         }
         this.rippleMesh.scale.x += scaleRate;
         this.rippleMesh.scale.z += scaleRate;
-        this.rippleMesh.material.uniforms.uTime.value += speed;
+        this.rippleMesh.material.uniforms.uTime.value += animationSpeed;
       }
       else {
         this.rippleMesh.visible = false;
