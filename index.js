@@ -28,6 +28,12 @@ const localMatrix2 = new THREE.Matrix4();
 export default e => {
   const app = useApp();
 
+  // keep track of whether the app is enabled
+  // the app should not consume any memory when disabled
+  let appEnabled = false;
+
+  // get reference to copies of the default specs
+  // 
   const grasses = [...glbUrlSpecs.grasses];
   const vegetation = [...glbUrlSpecs.vegetation];
   const ores = [...glbUrlSpecs.ores];
@@ -35,26 +41,25 @@ export default e => {
     .concat(glbUrlSpecs.ores.slice(0, 1))];
   
   const destroyApp = () => {
-    if (appExists) {
-      app.destroy();
+    if (appEnabled) {
+      console.log('destroying app');
+      appEnabled = false;
     }
   }
   
   const regenerateApp = () => {
-    if (appExists) {
-      destroyApp(app);
-    }
+    console.log('regenerating app');
+    destroyApp(app);
     createApp(app);
   }
   
   // initialization
   
-  let appExists = false;
-  
   async function createApp() {
-    appExists = true;
+    appEnabled = true;
     const camera = useCamera();
     const procGenManager = useProcGenManager();
+    
     const physics = usePhysics();
   
     let frameCb = null;
@@ -234,6 +239,8 @@ export default e => {
       };
       await _waitForLoad();
   
+      // Add debug UI window for the world
+      // This can be opened with shift+\
       makeWindow({
         grasses,
         vegetation,
@@ -299,9 +306,11 @@ export default e => {
     });
   
     useCleanup(() => {
-      generationTaskManager.destroy();
-      lodTracker.destroy();
-      instance.destroy();
+      console.log('cleanup!')
+      const procGenManager = useProcGenManager();
+      const instance = procGenManager.getInstance('lol');
+      console.log('instance is')
+      console.log(instance);
     });
   }
 
