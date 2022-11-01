@@ -39,6 +39,8 @@ export default e => {
   // Lod tracker
   let lodTracker = null;
 
+  let frameCb = null;
+
   // get reference to copies of the default specs
   // 
   const grasses = [...glbUrlSpecs.grasses];
@@ -51,6 +53,7 @@ export default e => {
     if (appEnabled) {
       console.log('destroying app');
       appEnabled = false;
+      app.destroy();
     }
   }
   
@@ -67,7 +70,6 @@ export default e => {
       return console.warn('App already enabled');
     }
     appEnabled = true;  
-    let frameCb = null;
   
     e.waitUntil((async () => {
       const instance = procGenManager.getInstance('lol');
@@ -305,24 +307,26 @@ export default e => {
         gpuTaskManager.update();
       };
     })());
-  
-    useFrame(() => {
-      frameCb && frameCb();
-    });
-  
-    useCleanup(async () => {
-      console.log('cleanup!')
-
-      // destroying lod tracker
-      lodTracker && await lodTracker.destroyTracker();
-
-      // destroying procgen instance
-      const procGenManager = useProcGenManager();
-      await procGenManager.deleteInstance('lol');
-    });
   }
 
   createApp();
+  
+  useFrame(() => {
+    frameCb && frameCb();
+  });
+
+  useCleanup(async () => {
+    console.log('cleanup!')
+
+    console.log('lodTracker', lodTracker);
+
+    // destroying lod tracker
+    lodTracker && await lodTracker.destroyTracker();
+
+    // destroying procgen instance
+    const procGenManager = useProcGenManager();
+    await procGenManager.deleteInstance('lol');
+  });
 
   return app;
 };
