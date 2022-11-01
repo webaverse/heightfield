@@ -1,10 +1,5 @@
 import * as THREE from 'three';
 import {PolygonPackage, PolygonMesh} from '../meshes/polygon-mesh.js';
-import {glbUrlSpecs} from '../assets.js';
-
-//
-
-export const grassUrls = glbUrlSpecs.grasses;
 
 //
 
@@ -42,9 +37,10 @@ export class GrassMesh extends THREE.Object3D {
     instance,
     // gpuTaskManager,
     physics,
+    assets
   }) {
     super();
-
+    this.assets = assets;
     this.polygonMesh = new PolygonMesh({
       instance,
       lodCutoff: spriteLodCutoff,
@@ -63,7 +59,7 @@ export class GrassMesh extends THREE.Object3D {
     this.polygonMesh.removeChunk(chunk);
   }
   async waitForLoad() {
-    const polygonPackage = await PolygonPackage.loadUrls(grassUrls, meshLodSpecs, this.physics);
+    const polygonPackage = await PolygonPackage.loadUrls(this.assets, meshLodSpecs, this.physics);
     this.polygonMesh.setPackage(polygonPackage);
 
     /* // XXX debugging

@@ -4,11 +4,11 @@ export const procgenAssetsBaseUrl = `https://webaverse.github.io/procgen-assets/
 const BASE_URL = import.meta.url.replace(/(\/)[^\/\\]*$/, '$1');
 
 export const glbUrlSpecs = {
-  // trees: [
+  // vegetation: [
   //   'assets/mobs/SimpleFence_RepeatingUV_Guilty.glb',
   // ].map(u => `${BASE_URL}/${u}`),
 
-  trees: [
+  vegetation: [
     'Tree_Toon_1.glb',
     // 'Tree_1_1.glb',
     // 'Tree_1_2.glb',
