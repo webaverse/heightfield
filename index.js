@@ -35,6 +35,9 @@ export default e => {
   // keep track of whether the app is enabled
   // the app should not consume any memory when disabled
   let appEnabled = false;
+  
+  // Lod tracker
+  let lodTracker = null;
 
   // get reference to copies of the default specs
   // 
@@ -70,7 +73,7 @@ export default e => {
       const instance = procGenManager.getInstance('lol');
   
       // lod tracker
-      const lodTracker = await instance.createLodChunkTracker({
+      lodTracker = await instance.createLodChunkTracker({
         minLod: 1,
         maxLod: 7,
         lod1Range: 2,
@@ -307,12 +310,15 @@ export default e => {
       frameCb && frameCb();
     });
   
-    useCleanup(() => {
+    useCleanup(async () => {
       console.log('cleanup!')
+
+      // destroying lod tracker
+      lodTracker && await lodTracker.destroyTracker();
+
+      // destroying procgen instance
       const procGenManager = useProcGenManager();
-      const instance = procGenManager.getInstance('lol');
-      console.log('instance is')
-      console.log(instance);
+      await procGenManager.deleteInstance('lol');
     });
   }
 
