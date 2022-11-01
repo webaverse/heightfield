@@ -14,6 +14,8 @@ import { HudMesh, hudUrls } from './layers/hud-mesh.js';
 import { glbUrlSpecs } from './assets.js';
 import { makeWindow } from './window.js';
 
+import { makeId } from './utils.js';
+
 // locals
 
 const localVector = new THREE.Vector3();
@@ -32,6 +34,8 @@ export default e => {
   
   const physics = usePhysics();
 
+  const procgenInstanceId = makeId(5);
+  
   // keep track of whether the app is enabled
   // the app should not consume any memory when disabled
   let appEnabled = false;
@@ -49,11 +53,14 @@ export default e => {
   const litter = [...glbUrlSpecs.vegetation.slice(0, 1)
     .concat(glbUrlSpecs.ores.slice(0, 1))];
   
-  const destroyApp = () => {
+  const destroyApp = async () => {
     if (appEnabled) {
-      console.log('destroying app');
       appEnabled = false;
-      app.destroy();
+      // destroying lod tracker
+      lodTracker && await lodTracker.destroyTracker();
+  
+      const procGenManager = useProcGenManager();
+      await procGenManager.deleteInstance(procgenInstanceId);
     }
   }
   
@@ -72,7 +79,7 @@ export default e => {
     appEnabled = true;  
   
     e.waitUntil((async () => {
-      const instance = procGenManager.getInstance('lol');
+      const instance = procGenManager.getInstance(procgenInstanceId);
   
       // lod tracker
       lodTracker = await instance.createLodChunkTracker({
@@ -316,16 +323,7 @@ export default e => {
   });
 
   useCleanup(async () => {
-    console.log('cleanup!')
-
-    console.log('lodTracker', lodTracker);
-
-    // destroying lod tracker
-    lodTracker && await lodTracker.destroyTracker();
-
-    // destroying procgen instance
-    const procGenManager = useProcGenManager();
-    await procGenManager.deleteInstance('lol');
+    destroyApp();
   });
 
   return app;
