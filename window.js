@@ -2,11 +2,13 @@ import metaversefile from 'metaversefile';
 import { procgenAssetsBaseUrl } from './assets.js';
 
 // TODO:
-// 1. Add a button that enables and disables the different procgen layers
-// 2. Add a list of assets per layer
+// 1. Add a button to destroy world
+// 2. Add a button to create world
+// 3. Add a button to regenerate world
+
 // 3. Add a button to add a new asset to the list
 // 4. Add a button to remove an asset from the list
-// 5. Add a button to regenerate world
+
 // 6. store and recall from local storage
 // 7. Add a button to save the list to a file
 // 8. Add a button to load a list from a file
@@ -46,7 +48,15 @@ const assetBox = (name, assets, procgenWindow) => {
   procgenWindow.appendChild(assetList);
 }
 
-export const makeWindow = ({ grasses, vegetation, ores, litter }) => {
+export const makeWindow = ({
+    grasses,
+    vegetation,
+    ores,
+    litter,
+    createMeshCallback,
+    destroyMeshCallback,
+    regenerateMeshCallback
+  }) => {
   const app = document.getElementById('app');
   const procgenWindow = document.createElement('div', { id: 'procgen-window' });
   // give window an id of procgen-window
@@ -76,10 +86,34 @@ export const makeWindow = ({ grasses, vegetation, ores, litter }) => {
   closeButton.addEventListener('click', toggleWindow);
   procgenWindow.appendChild(closeButton);
 
+  const destroyButton = document.createElement('button');
+  destroyButton.innerHTML = 'Destroy World';
+  destroyButton.style.width = '100%';
+  destroyButton.style.height = '50px';
+  destroyButton.style.marginBottom = '10px';
+  destroyButton.addEventListener('click', destroyMeshCallback);
+  procgenWindow.appendChild(destroyButton);
+
+  const createButton = document.createElement('button');
+  createButton.innerHTML = 'Create World';
+  createButton.style.width = '100%';
+  createButton.style.height = '50px';
+  createButton.style.marginBottom = '10px';
+  createButton.addEventListener('click', createMeshCallback);
+  procgenWindow.appendChild(createButton);
+
+  const regenerateButton = document.createElement('button');
+  regenerateButton.innerHTML = 'Regenerate World';
+  regenerateButton.style.width = '100%';
+  regenerateButton.style.height = '50px';
+  regenerateButton.style.marginBottom = '10px';
+  regenerateButton.addEventListener('click', regenerateMeshCallback);
+  procgenWindow.appendChild(regenerateButton);
+
   assetBox('grass', grasses, procgenWindow);
   assetBox('vegetation', vegetation, procgenWindow);
   assetBox('ores', ores, procgenWindow);
-  // assetBox('litter', litter, procgenWindow);
+  assetBox('litter', litter, procgenWindow);
 
   return procgenWindow;
 };
