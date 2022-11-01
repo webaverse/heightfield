@@ -95,7 +95,7 @@ class WaterParticleEffect {
     const rotationAttribute = this.divingHigherSplash.geometry.getAttribute('rotation');
     const particleCount = this.divingHigherSplash.info.particleCount;
     for (let i = 0; i < particleCount; i ++) {
-      const vy = 0.09 + Math.floor(i * 0.5) * 0.005;
+      const vy = 0.09 + Math.floor(i * 0.4) * 0.005;
       const initDistortion = 0.18 + Math.random() * 0.13;
       const initScale = 0.45 + Math.random() * 0.45;
       this.divingHigherSplash.info.velocity[i] = vy;
