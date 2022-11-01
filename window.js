@@ -2,9 +2,6 @@ import metaversefile from 'metaversefile';
 import { procgenAssetsBaseUrl } from './assets.js';
 
 // TODO:
-// 1. Add a button to destroy world
-// 2. Add a button to create world
-// 3. Add a button to regenerate world
 
 // 3. Add a button to add a new asset to the list
 // 4. Add a button to remove an asset from the list
@@ -37,12 +34,26 @@ const assetBox = (name, assets, procgenWindow) => {
   // make a grass list
   const assetListItems = document.createElement('ul');
 
+  function removeAsset(asset, el) {
+    console.log("removing asset", asset);
+    const index = assets.indexOf(asset);
+    if (index > -1) {
+      assets.splice(index, 1);
+    }
+    el.remove();
+  }
+
   // for each grass in grasses, make a list item with the grass name
   assets.forEach(asset => {
-    console.log(asset);
     const assetListItem = document.createElement('li');
     assetListItem.innerText = asset.replace(procgenAssetsBaseUrl + name.toLowerCase() + "/", '');
     assetListItems.appendChild(assetListItem);
+
+    // make a button to remove the asset from the list
+    const removeAssetButton = document.createElement('button');
+    removeAssetButton.innerText = 'remove';
+    removeAssetButton.addEventListener('click', () => removeAsset(asset, assetListItem));
+    assetListItem.appendChild(removeAssetButton);
   });
 
   assetList.appendChild(assetListItems);
