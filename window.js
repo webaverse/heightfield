@@ -4,7 +4,6 @@ import { procgenAssetsBaseUrl } from './assets.js';
 // TODO:
 
 // 3. Add a button to add a new asset to the list
-// 4. Add a button to remove an asset from the list
 
 // 6. store and recall from local storage
 // 7. Add a button to save the list to a file
@@ -34,6 +33,29 @@ const assetBox = (name, assets, procgenWindow) => {
   // make a grass list
   const assetListItems = document.createElement('ul');
 
+  function createAsset(asset){
+    const assetListItem = document.createElement('li');
+    assetListItem.innerText = asset.replace(procgenAssetsBaseUrl + name.toLowerCase() + "/", '');
+    assetListItems.appendChild(assetListItem);
+
+    // make a button to remove the asset from the list
+    const removeAssetButton = document.createElement('button');
+    removeAssetButton.innerText = 'remove';
+    removeAssetButton.addEventListener('click', () => removeAsset(asset, assetListItem));
+    assetListItem.appendChild(removeAssetButton);
+  }
+
+  // add a button to add a new asset to the list
+  const addAssetButton = document.createElement('button');
+  addAssetButton.innerText = 'Add ' + name;
+  addAssetButton.addEventListener('click', () => {
+    const newAsset = prompt('Enter the name of the new asset');
+    if (newAsset) {
+      createAsset(asset)
+    }
+  });
+  assetList.appendChild(addAssetButton);
+
   function removeAsset(asset, el) {
     console.log("removing asset", asset);
     const index = assets.indexOf(asset);
@@ -45,15 +67,7 @@ const assetBox = (name, assets, procgenWindow) => {
 
   // for each grass in grasses, make a list item with the grass name
   assets.forEach(asset => {
-    const assetListItem = document.createElement('li');
-    assetListItem.innerText = asset.replace(procgenAssetsBaseUrl + name.toLowerCase() + "/", '');
-    assetListItems.appendChild(assetListItem);
-
-    // make a button to remove the asset from the list
-    const removeAssetButton = document.createElement('button');
-    removeAssetButton.innerText = 'remove';
-    removeAssetButton.addEventListener('click', () => removeAsset(asset, assetListItem));
-    assetListItem.appendChild(removeAssetButton);
+    createAsset(asset);
   });
 
   assetList.appendChild(assetListItems);
