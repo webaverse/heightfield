@@ -27,6 +27,10 @@ const localMatrix2 = new THREE.Matrix4();
 
 export default e => {
   const app = useApp();
+  const camera = useCamera();
+  const procGenManager = useProcGenManager();
+  
+  const physics = usePhysics();
 
   // keep track of whether the app is enabled
   // the app should not consume any memory when disabled
@@ -56,12 +60,10 @@ export default e => {
   // initialization
   
   async function createApp() {
-    appEnabled = true;
-    const camera = useCamera();
-    const procGenManager = useProcGenManager();
-    
-    const physics = usePhysics();
-  
+    if(appEnabled){
+      return console.warn('App already enabled');
+    }
+    appEnabled = true;  
     let frameCb = null;
   
     e.waitUntil((async () => {
