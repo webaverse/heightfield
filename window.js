@@ -15,8 +15,11 @@ import { procgenAssetsBaseUrl } from './assets.js';
 // 9. Add a button to refresh from defaults
 
 export const toggleWindowEvent = e => {
-  if (e.shiftKey && e.keyCode === 222) {
-    window.style.display = window.style.display === 'none' ? 'block' : 'none';
+  // bind shift+\ to toggle window
+  if (e.shiftKey && e.keyCode === 220) {
+    console.log('looking for procgen window');
+    const procgenWindow = document.getElementById("procgen-window");
+    procgenWindow.style.display = procgenWindow.style.display === 'none' ? 'block' : 'none';
   }
 }
 
@@ -53,12 +56,13 @@ export const makeWindow = ({
     vegetation,
     ores,
     litter,
-    createMeshCallback,
-    destroyMeshCallback,
-    regenerateMeshCallback
+    createAppCallback,
+    destroyAppCallback,
+    regenerateAppCallback
   }) => {
   const app = document.getElementById('app');
-  const procgenWindow = document.createElement('div', { id: 'procgen-window' });
+  const procgenWindow = document.createElement('div');
+  procgenWindow.id = 'procgen-window';
   // give window an id of procgen-window
   procgenWindow.style.position = 'absolute';
   procgenWindow.style.top = '200px';
@@ -91,7 +95,7 @@ export const makeWindow = ({
   destroyButton.style.width = '100%';
   destroyButton.style.height = '50px';
   destroyButton.style.marginBottom = '10px';
-  destroyButton.addEventListener('click', destroyMeshCallback);
+  destroyButton.addEventListener('click', destroyAppCallback);
   procgenWindow.appendChild(destroyButton);
 
   const createButton = document.createElement('button');
@@ -99,7 +103,7 @@ export const makeWindow = ({
   createButton.style.width = '100%';
   createButton.style.height = '50px';
   createButton.style.marginBottom = '10px';
-  createButton.addEventListener('click', createMeshCallback);
+  createButton.addEventListener('click', createAppCallback);
   procgenWindow.appendChild(createButton);
 
   const regenerateButton = document.createElement('button');
@@ -107,7 +111,7 @@ export const makeWindow = ({
   regenerateButton.style.width = '100%';
   regenerateButton.style.height = '50px';
   regenerateButton.style.marginBottom = '10px';
-  regenerateButton.addEventListener('click', regenerateMeshCallback);
+  regenerateButton.addEventListener('click', regenerateAppCallback);
   procgenWindow.appendChild(regenerateButton);
 
   assetBox('grass', grasses, procgenWindow);
