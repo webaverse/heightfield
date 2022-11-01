@@ -5,11 +5,6 @@ import {glbUrlSpecs} from '../assets.js';
 
 //
 
-export const litterUrls = glbUrlSpecs.trees.slice(0, 1)
-  .concat(glbUrlSpecs.ores.slice(0, 1));
-
-//
-
 const spriteLodCutoff = 16;
 const meshLodSpecs = {
   1: {
@@ -40,9 +35,10 @@ export class LitterMetaMesh extends THREE.Object3D {
     instance,
     // gpuTaskManager,
     physics,
+    assets
   }) {
     super();
-
+    this.assets = assets;
     this.polygonMesh = new PolygonMesh({
       instance,
       lodCutoff: spriteLodCutoff,
@@ -76,8 +72,8 @@ export class LitterMetaMesh extends THREE.Object3D {
       polygonPackage,
       spritesheetPackage,
     ] = await Promise.all([
-      PolygonPackage.loadUrls(litterUrls, meshLodSpecs, this.physics),
-      SpritesheetPackage.loadUrls(litterUrls),
+      PolygonPackage.loadUrls(this.assets, meshLodSpecs, this.physics),
+      SpritesheetPackage.loadUrls(this.assets),
     ]);
     this.polygonMesh.setPackage(polygonPackage);
     this.spritesheetMesh.setPackage(spritesheetPackage);

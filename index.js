@@ -7,9 +7,12 @@ const {GenerationTaskManager} = useGenerationTask();
 import {TerrainMesh} from './layers/terrain-mesh.js';
 import {WaterMesh} from './layers/water-mesh.js';
 // import {BarrierMesh} from './layers/barrier-mesh.js';
-import {LitterMetaMesh, litterUrls} from './layers/litter-mesh.js';
-import {GrassMesh, grassUrls} from './layers/grass-mesh.js';
+import {LitterMetaMesh} from './layers/litter-mesh.js';
+import {GrassMesh} from './layers/grass-mesh.js';
 import {HudMesh, hudUrls} from './layers/hud-mesh.js';
+
+import {glbUrlSpecs} from './assets.js';
+import {makeWindow} from './window.js';
 
 // locals
 
@@ -19,6 +22,13 @@ const localVector3 = new THREE.Vector3();
 const localQuaternion = new THREE.Quaternion();
 const localMatrix = new THREE.Matrix4();
 const localMatrix2 = new THREE.Matrix4();
+
+const grasses = [...glbUrlSpecs.grasses];
+const vegetation = [...glbUrlSpecs.vegetation];
+const ores = [...glbUrlSpecs.ores];
+const litter = [...glbUrlSpecs.vegetation.slice(0, 1)
+  .concat(glbUrlSpecs.ores.slice(0, 1))];
+
 
 // main
 
@@ -87,16 +97,18 @@ export default e => {
 
     const litterMesh = new LitterMetaMesh({
       instance,
-      gpuTaskManager,
+      // gpuTaskManager,
       physics,
+      assets: litter
     });
     app.add(litterMesh);
     litterMesh.updateMatrixWorld();
 
     const grassMesh = new GrassMesh({
       instance,
-      gpuTaskManager,
+      // gpuTaskManager,
       physics,
+      assets: grasses
     });
     app.add(grassMesh);
     grassMesh.updateMatrixWorld();
@@ -161,8 +173,8 @@ export default e => {
           grass: true,
           poi: true,
         };
-        const numVegetationInstances = litterUrls.length;
-        const numGrassInstances = grassUrls.length;
+        const numVegetationInstances = litter.length;
+        const numGrassInstances = grasses.length;
         const numPoiInstances = hudUrls.length;
         const options = {
           signal,
@@ -206,6 +218,8 @@ export default e => {
       ]);
     };
     await _waitForLoad();
+
+    makeWindow({grasses, vegetation, ores, litter});
 
     // frame handling
     frameCb = () => {
