@@ -1,8 +1,8 @@
 import metaversefile from 'metaversefile';
 import * as THREE from 'three';
-const {useApp, useFrame, useCamera, useLocalPlayer, usePhysics, useProcGenManager, useGPUTask, useGenerationTask} = metaversefile;
-const {GPUTaskManager} = useGPUTask();
-const {GenerationTaskManager} = useGenerationTask();
+const { useApp, useFrame, useCamera, useLocalPlayer, usePhysics, useProcGenManager, useGPUTask, useGenerationTask } = metaversefile;
+const { GPUTaskManager } = useGPUTask();
+const { GenerationTaskManager } = useGenerationTask();
 
 import { TerrainMesh } from './layers/terrain-mesh.js';
 import { WaterMesh } from './layers/water-mesh.js';
@@ -30,8 +30,6 @@ const localQuaternion = new THREE.Quaternion();
 const localMatrix = new THREE.Matrix4();
 const localMatrix2 = new THREE.Matrix4();
 
-// main
-
 export default e => {
   const app = useApp();
   const camera = useCamera();
@@ -48,10 +46,14 @@ export default e => {
     const instance = procGenManager.getInstance('lol');
 
     // lod tracker
+    const MIN_LOD = 1;
+    const MAX_LOD = 7;
+    const LOD_1_RANGE = 2;
+
     const lodTracker = await instance.createLodChunkTracker({
-      minLod: 1,
-      maxLod: 7,
-      lod1Range: 2,
+      minLod: MIN_LOD,
+      maxLod: MAX_LOD,
+      lod1Range: LOD_1_RANGE,
       // debug: true,
     });
     // app.add(lodTracker.debugMesh);
@@ -74,7 +76,7 @@ export default e => {
     });
     terrainMesh.frustumCulled = false;
     // terrainMesh.castShadow = true;
-    terrainMesh.receiveShadow = true; 
+    terrainMesh.receiveShadow = true;
     app.add(terrainMesh);
     terrainMesh.updateMatrixWorld();
 
@@ -107,23 +109,26 @@ export default e => {
     const terrainObjects = new TerrainObjectsMesh(instance, physics, OBJECTS_SPECS_ARRAY);
     app.add(terrainObjects);
     terrainObjects.updateMatrixWorld();
+
+    // chunk handling
     // genration events handling
     lodTracker.onChunkAdd(async chunk => {
       const key = procGenManager.getNodeHash(chunk);
-      
+
       const generation = generationTaskManager.createGeneration(key);
       generation.addEventListener('geometryadd', e => {
-        const {result} = e.data;
-        const {heightfield} = result;
-        const {treeInstances, bushInstances, rockInstances, stoneInstances, grassInstances, poiInstances} = heightfield;
+        const { result } = e.data;
+        const { heightfield } = result;
+        const { treeInstances, bushInstances, rockInstances, stoneInstances, grassInstances, poiInstances } = heightfield;
 
-        // console.log('got heightfield', heightfield);
+        // remove replaced chunks before adding the new one 
+        // lodTracker.cleanupReplacedChunks(chunk);
 
         // heightfield
-        terrainMesh.addChunk(chunk, heightfield);
+        terrainMesh.addChunk(chunk, heightfield, lodTracker);
         waterMesh.addChunk(chunk, heightfield);
         // barrierMesh.addChunk(chunk, heightfield);
-      
+
         const terrainObjectInstances = [
           treeInstances,
           bushInstances,
@@ -135,6 +140,7 @@ export default e => {
 
         terrainObjects.addChunks(chunk, terrainObjectInstances);
       });
+
       generation.addEventListener('geometryremove', e => {
         // heightfield
         terrainMesh.removeChunk(chunk);
@@ -173,18 +179,20 @@ export default e => {
           numPoiInstances,
           options
         );
+
         generation.finish({
           heightfield,
         });
+
       } catch (err) {
+        lodTracker.cleanupReplacedChunks(chunk);
+
         if (err.isAbortError) {
-          // console.log('got chunk add abort', chunk);
+          // canceled
         } else {
           throw err;
         }
-      } /* finally {
-        generations.delete(key);
-      } */
+      }
     });
     lodTracker.onChunkRemove(chunk => {
       const key = procGenManager.getNodeHash(chunk);
@@ -200,6 +208,11 @@ export default e => {
       ]);
     };
     await _waitForLoad();
+
+    // ? Debugging 
+    setInterval(() => {
+      console.log('Leaked : ', lodTracker.replacedNodes.size);
+    }, 3000);
 
     // frame handling
     frameCb = () => {

@@ -258,8 +258,10 @@ export class WaterMesh extends BufferedMesh {
     }
     {
       const task = this.gpuTasks.get(key);
-      task.cancel();
-      this.gpuTasks.delete(key);
+      if(task) {
+        task.cancel();
+        this.gpuTasks.delete(key);
+      }
     }
   }
 

@@ -115,7 +115,7 @@ export class TerrainMesh extends BufferedMesh {
     this.gpuTasks = new Map();
     this.geometryBindings = new Map();
   }
-  addChunk(chunk, chunkResult) {
+  addChunk(chunk, chunkResult, lodTracker) {
     const key = procGenManager.getNodeHash(chunk);
     const task = this.gpuTaskManager.transact(() => {
       const _mapOffsettedIndices = (
@@ -244,6 +244,10 @@ export class TerrainMesh extends BufferedMesh {
           terrainGeometry.indices.length,
           boundingBox
         );
+
+        // ? chunk replacement
+        lodTracker.cleanupReplacedChunks(chunk);
+
         _renderTerrainMeshDataToGeometry(
           terrainGeometry,
           this.allocator.geometry,
@@ -350,8 +354,10 @@ export class TerrainMesh extends BufferedMesh {
     }
     {
       const task = this.gpuTasks.get(key);
-      task.cancel();
-      this.gpuTasks.delete(key);
+      if(task) {
+        task.cancel();
+        this.gpuTasks.delete(key);
+      }
     }
   }
 
