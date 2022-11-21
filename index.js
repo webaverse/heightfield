@@ -93,22 +93,13 @@ export default e => {
       app.add(terrainMesh);
       terrainMesh.updateMatrixWorld();
 
-      const waterMesh = new WaterMesh({
+      /* const barrierMesh = new BarrierMesh({
         instance,
         gpuTaskManager,
-        physics,
       });
-      waterMesh.frustumCulled = false;
-      app.add(waterMesh);
-      waterMesh.updateMatrixWorld();
-
-      /* const barrierMesh = new BarrierMesh({
-      instance,
-      gpuTaskManager,
-    });
-    barrierMesh.frustumCulled = false;
-    app.add(barrierMesh);
-    barrierMesh.updateMatrixWorld(); */
+      barrierMesh.frustumCulled = false;
+      app.add(barrierMesh);
+      barrierMesh.updateMatrixWorld(); */
 
       const TERRAIN_OBJECTS_MESHES = {
         treeMesh: new TerrainObjectSpecs(InstancedObjectMesh, treeUrls, true),
@@ -126,6 +117,17 @@ export default e => {
       );
       app.add(terrainObjects);
       terrainObjects.updateMatrixWorld();
+
+      const waterMesh = new WaterMesh({
+        instance,
+        gpuTaskManager,
+        physics,
+      });
+      waterMesh.frustumCulled = false;
+      app.add(waterMesh);
+      waterMesh.depthInvisibleList.push(terrainObjects);
+      waterMesh.updateMatrixWorld();
+
       // genration events handling
       lodTracker.onChunkAdd(async chunk => {
         const key = procGenManager.getNodeHash(chunk);
@@ -222,6 +224,7 @@ export default e => {
         await Promise.all([
           terrainMesh.waitForLoad(),
           terrainObjects.waitForLoad(),
+          waterMesh.waitForLoad(),
         ]);
       };
       await _waitForLoad();
