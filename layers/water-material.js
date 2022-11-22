@@ -149,7 +149,7 @@ const _createWaterMaterial = () => {
 
         const float TAU = 2. * 3.14159265;
 
-        vec4 cosine_gradient(float x,  vec4 phase, vec4 amp, vec4 freq, vec4 offset){
+        vec4 cosine_gradient(float x, vec4 phase, vec4 amp, vec4 freq, vec4 offset){
           phase *= TAU;
           x *= TAU;
 
@@ -161,7 +161,7 @@ const _createWaterMaterial = () => {
           );
         }
         float getDepth(const in vec2 screenPosition) {
-          return unpackRGBAToDepth( texture2D(tDepth, screenPosition));
+          return unpackRGBAToDepth(texture2D(tDepth, screenPosition));
         }
         float getViewZ(const in float depth) {
           return perspectiveDepthToViewZ(depth, cameraNear, cameraFar);
@@ -234,13 +234,13 @@ const _createWaterMaterial = () => {
 
 
             //################################## handle mirror ##################################
-            vec3 surfaceNormal = normalize( vNormal * vec3( 1.5, 1.0, 1.5 ) );
+            vec3 surfaceNormal = normalize(vNormal * vec3(1.5, 1.0, 1.5));
             vec3 worldToEye = eye - vPos.xyz;
-            vec3 eyeDirection = normalize( worldToEye );
+            vec3 eyeDirection = normalize(worldToEye);
             float distance = length(worldToEye);
             float distortionScale = 3.;
             vec2 distortion = surfaceNormal.xz * (0.001 + 1.0 / distance) * distortionScale;
-            vec3 reflectionSample = vec3(texture2D( mirror, vUv.xy / vUv.w + distortion));
+            vec3 reflectionSample = vec3(texture2D(mirror, vUv.xy / vUv.w + distortion));
             float theta = max(dot(eyeDirection, surfaceNormal), 0.0);
             float rf0 = 0.3;
             float reflectance = rf0 + (1.0 - rf0) * pow((1.0 - theta), 5.0);
@@ -252,9 +252,9 @@ const _createWaterMaterial = () => {
             //################################## refraction ##################################
             vec3 waterColor = vec3(0.126, 0.47628, 0.6048);
             
-            vec3 surfaceNormal = normalize( vNormal * vec3( 1.5, 1.0, 1.5 ) );
-            vec3 worldToEye = eye-vPos.xyz;
-            vec3 eyeDirection = normalize( worldToEye );
+            vec3 surfaceNormal = normalize(vNormal * vec3(1.5, 1.0, 1.5));
+            vec3 worldToEye = eye - vPos.xyz;
+            vec3 eyeDirection = normalize(worldToEye);
             float distance = length(worldToEye);
             float distortionScale = 0.1;
             vec2 distortion = surfaceNormal.xz * (0.001 + 1.0 / distance) * distortionScale;

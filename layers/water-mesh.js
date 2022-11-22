@@ -416,7 +416,7 @@ export class WaterMesh extends BufferedMesh {
       // handle swimming action
       this.handleSwimAction(contactWater, localPlayer, WATER_HEIGHT);
     }
-    this.underWater = camera.position.y - 0.03 < WATER_HEIGHT;
+    this.underWater = camera.position.y < WATER_HEIGHT;
     this.material.uniforms.uTime.value = performance.now() / 1000;
     this.material.uniforms.playerPos.value.copy(localPlayer.position);
     this.material.uniforms.cameraInWater.value = this.underWater;
@@ -441,17 +441,6 @@ export class WaterMesh extends BufferedMesh {
 
     this.material.uniforms.foamTexture.value = shaderTextures.foamTexture;
     this.material.uniforms.tDistortion.value = shaderTextures.tDistortion;
-
-    // // underwater mask
-    // const geometry = new THREE.PlaneGeometry( 2, 2 );
-    // const material = new THREE.MeshBasicMaterial( {color: 0x097F89, side: THREE.DoubleSide, transparent: true, opacity: 0.5, depthWrite: false} );
-    // this.underWaterMask = new THREE.Mesh(geometry, material);
-    // this.underWaterMask.position.set(0, 0, -0.2);
-    // this.cameraHasMask = false;
-
-    // renderSettings.findRenderSettings(scene).fog.color.r = 4 / 255;
-    // renderSettings.findRenderSettings(scene).fog.color.g = 41.5 / 255;
-    // renderSettings.findRenderSettings(scene).fog.color.b = 44.5 / 255;
   }
   async waitForLoad() {
     const paths = {
