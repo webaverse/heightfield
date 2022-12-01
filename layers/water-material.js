@@ -54,6 +54,7 @@ const _createWaterMaterial = () => {
       varying vec3 vWorldPosition;
       varying vec3 vPos;
       varying vec3 vNormal;
+      varying vec3 vWorldNormal;
 
       vec3 gerstnerWave(float dirX, float dirZ, float steepness, float waveLength, inout vec3 tangent, inout vec3 binormal, vec3 pos) {
         vec2 dirXZ = vec2(dirX, dirZ);
@@ -86,10 +87,10 @@ const _createWaterMaterial = () => {
         vUv = textureMatrix * vec4( pos, 1.0 );
 
         // 1.dirX  2.dirZ  3.steepness  4.waveLength
-        vec4 waveA = vec4(1.0, 1.0, 0.025, 30.);
-        vec4 waveB = vec4(1.0, 0.6, 0.025, 15.);
-        vec4 waveC = vec4(0.1, 1.3, 0.025, 8.);
-        vec4 waveD = vec4(0.6, 1.0, 0.025, 3.);
+        vec4 waveA = vec4(1.0, 1.0, 0.05, 30.);
+        vec4 waveB = vec4(1.0, 0.6, 0.05, 15.);
+        vec4 waveC = vec4(1.0, 1.3, 0.05, 8.);
+        vec4 waveD = vec4(0.6, 1.0, 0.05, 5.);
 
         vec3 tangent = vec3(1.0, 0.0, 0.0);
         vec3 binormal = vec3(0.0, 0.0, 1.0);
@@ -103,7 +104,7 @@ const _createWaterMaterial = () => {
 
         vec3 waveNormal = normalize(cross(binormal, tangent));
         vNormal = waveNormal;
-
+        vWorldNormal = normal;
         
         vec4 modelPosition = modelMatrix * vec4(pos, 1.0);
         vec4 viewPosition = viewMatrix * modelPosition;
@@ -135,6 +136,7 @@ const _createWaterMaterial = () => {
         varying vec3 vNormal;
         varying vec4 vUv;
         varying vec3 vPos;
+        varying vec3 vWorldNormal;
 
         uniform float uTime;
         uniform sampler2D tDepth;
@@ -144,6 +146,8 @@ const _createWaterMaterial = () => {
         uniform vec2 resolution;
 
         uniform sampler2D tDistortion;
+
+        const vec3 eyePosition = vec3(0.7579705245610807, 0.6382203660633491, 0.1347421546456965);
 
         const vec4 phases = vec4(0.28, 0.50, 0.07, 0);
         const vec4 amplitudes = vec4(4.02, 0.34, 0.65, 0);
@@ -240,15 +244,15 @@ const _createWaterMaterial = () => {
               //################################## handle mirror ##################################
               vec3 surfaceNormal = normalize(vNormal * vec3(1.5, 1.0, 1.5));
               vec3 worldToEye = eye - vWorldPosition.xyz;
-              vec3 eyeDirection = normalize(worldToEye);
               float distance = length(worldToEye);
               float distortionScale = 3.;
               vec2 distortion = surfaceNormal.xz * (0.001 + 1.0 / distance) * distortionScale;
               vec3 reflectionSample = vec3(texture2D(mirror, vUv.xy / vUv.w + distortion));
-              float theta = max(dot(eyeDirection, surfaceNormal), 0.0);
-              float rf0 = 0.3;
+              float theta = max(dot(eyePosition, surfaceNormal), 0.0);
+              float rf0 = 0.1;
               float reflectance = rf0 + (1.0 - rf0) * pow((1.0 - theta), 5.0);
-              vec3 albedo = mix(vec3(0.), reflectionSample * 0.4, reflectance);
+              float reflectanceScale = 5.;
+              vec3 albedo = mix(reflectionSample * 0.6, reflectionSample * 0.2, reflectance * reflectanceScale);
               gl_FragColor = vec4(albedo, col2.a);
               gl_FragColor.rgb += col2.rgb;
             }
@@ -258,15 +262,15 @@ const _createWaterMaterial = () => {
               
               vec3 surfaceNormal = normalize(vNormal * vec3(1.5, 1.0, 1.5));
               vec3 worldToEye = eye - vWorldPosition.xyz;
-              vec3 eyeDirection = normalize(worldToEye);
               float distance = length(worldToEye);
               float distortionScale = 0.1;
               vec2 distortion = surfaceNormal.xz * (0.001 + 1.0 / distance) * distortionScale;
               vec3 reflectionSample = vec3(texture2D(refractionTexture, vUv.xy / vUv.w + distortion));
-              float theta = max(dot(eyeDirection, surfaceNormal), 0.0);
-              float rf0 = 0.3;
+              float theta = max(dot(eyePosition, surfaceNormal), 0.0);
+              float rf0 = 0.1;
               float reflectance = rf0 + (1.0 - rf0) * pow((1.0 - theta), 5.0);
-              vec3 albedo = mix(vec3(0.2), reflectionSample * 0.4, reflectance);
+              float reflectanceScale = 5.;
+              vec3 albedo = mix(reflectionSample * 0.6, reflectionSample * 0.2, reflectance * reflectanceScale);
               gl_FragColor = vec4(albedo, 1.0);
               gl_FragColor.rgb += waterColor.rgb;
             }
@@ -285,7 +289,7 @@ const _createWaterMaterial = () => {
     depthWrite: false,
     // blending: THREE.AdditiveBlending,
   });
-    return material;
+  return material;
 };
 
 export default _createWaterMaterial;
