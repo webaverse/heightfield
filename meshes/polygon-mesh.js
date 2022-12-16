@@ -1,5 +1,6 @@
 import metaversefile from "metaversefile";
 import * as THREE from "three";
+import { Quaternion, Vector3 } from 'three';
 import {GRASS_COLORS_SHADER_CODE} from "../assets.js";
 import {
   GET_COLOR_PARAMETER_NAME,
@@ -13,6 +14,7 @@ import {_patchOnBeforeCompileFunction} from "../utils/utils.js";
 const {
   useCamera,
   useProcGenManager,
+  usePlayersManager,
   useGeometries,
   useAtlasing,
   useGeometryBatching,
@@ -44,6 +46,16 @@ const _writeToTexture = (array, texture, textureOffset, index, number) => {
     texture.image.data[textureOffset + indexOffset + j] = value;
   }
 };
+
+const writeToTextureSingle = (array, texture, textureOffset, index, number) => {
+  const indexOffset = index * 4;
+  for (let j = 0; j < number; j++) {
+    const value = array[j];
+    texture.image.data[textureOffset + indexOffset + j] = value;
+  }
+};
+
+const _writeToTextureSingle = writeToTextureSingle;
 
 const _addDepthPackingShaderCode = shader => {
   return /* glsl */ `#define DEPTH_PACKING 3201` + "\n" + shader;
@@ -421,6 +433,16 @@ export class PolygonMesh extends InstancedBatchedMesh {
   }
 }
 
+class GrassInstance {
+  constructor(ps, qs, material, materialWeight, props){
+    this.ps = ps;
+    this.qs = qs;
+    this.material = material;
+    this.materialWeight = materialWeight;
+    this.props = props;
+  }
+}
+
 export class GrassPolygonMesh extends InstancedBatchedMesh {
   constructor({
     instance,
@@ -463,7 +485,7 @@ export class GrassPolygonMesh extends InstancedBatchedMesh {
         maxNumGeometries,
         maxInstancesPerGeometryPerDrawCall,
         maxDrawCallsPerGeometry,
-        boundingType: "box",
+        //boundingType: "box",
       },
     );
     const {textures: attributeTextures} = allocator;
@@ -691,6 +713,8 @@ export class GrassPolygonMesh extends InstancedBatchedMesh {
     super(geometry, material, allocator);
 
     this.shadow = shadow;
+    this.maxInstancesPerGeometryPerDrawCall = maxInstancesPerGeometryPerDrawCall;
+    this.instances = [];
 
     if (shadow) {
       // ? See more details here : https://discourse.threejs.org/t/shadow-for-instances/7947/10
@@ -709,76 +733,84 @@ export class GrassPolygonMesh extends InstancedBatchedMesh {
     this.modelHeight = 0;
 
     this.allocatedChunks = new Map();
+    window.sortGrass = ()=>{this.sort();};
   }
+
+  _renderGrassPolygonGeometry(
+    drawCall,
+    instances, 
+    offset
+  ) {
+    const pTexture = drawCall.getTexture("p");
+    const pOffset = offset * this.maxInstancesPerGeometryPerDrawCall * 4;
+    //const pOffset = drawCall.getTextureOffset("p");
+    
+    const qTexture = drawCall.getTexture("q");
+    const qOffset = offset * this.maxInstancesPerGeometryPerDrawCall * 4;
+    //const qOffset = drawCall.getTextureOffset("q");
+    
+    const materialsTexture = drawCall.getTexture("materials");
+    const materialsOffset = offset * this.maxInstancesPerGeometryPerDrawCall * 4;
+    //const materialsOffset = drawCall.getTextureOffset("materials");
+    
+    const materialsWeightsTexture = drawCall.getTexture("materialsWeights");
+    const materialsWeightsOffset = offset * this.maxInstancesPerGeometryPerDrawCall * 4;
+    //const materialsWeightsOffset = drawCall.getTextureOffset("materialsWeights");
+    
+    const grassPropsTexture = drawCall.getTexture("grassProps");
+    const grassPropsOffset = offset * this.maxInstancesPerGeometryPerDrawCall * 4;
+    //const grassPropsOffset = drawCall.getTextureOffset("grassProps");
+
+    let index = 0;
+    for (const ins of instances) {
+      // geometry
+      _writeToTextureSingle(ins.ps.toArray(), pTexture, pOffset, index, 3);
+      _writeToTextureSingle(ins.qs.toArray(), qTexture, qOffset, index, 4);
+
+      // materials
+      _writeToTextureSingle(
+        ins.material,
+        materialsTexture,
+        materialsOffset,
+        index,
+        4,
+      );
+      _writeToTextureSingle(
+        ins.materialWeight,
+        materialsWeightsTexture,
+        materialsWeightsOffset,
+        index,
+        4,
+      );
+
+      // grass props
+      _writeToTextureSingle(
+        ins.props,
+        grassPropsTexture,
+        grassPropsOffset,
+        index,
+        4,
+      );
+
+      index++;
+    }
+
+    drawCall.updateTexture("p", pOffset, index * 4);
+    drawCall.updateTexture("q", qOffset, index * 4);
+    drawCall.updateTexture("materials", materialsOffset, index * 4);
+    drawCall.updateTexture("materialsWeights", materialsWeightsOffset, index * 4);
+    drawCall.updateTexture("grassProps", grassPropsOffset, index * 4);
+    pTexture.needsUpdate = true;
+    qTexture.needsUpdate = true;
+    materialsTexture.needsUpdate = true;
+    materialsWeightsTexture.needsUpdate = true;
+    grassPropsTexture.needsUpdate = true;
+    drawCall.setInstanceCount(instances.length);
+  };
 
   addChunk(chunk, instances) {
     if (instances) {
       if (chunk.lod < this.lodCutoff && instances.length > 0) {
-        const _renderGrassPolygonGeometry = (
-          drawCall,
-          ps,
-          qs,
-          materials,
-          materialsWeights,
-          grassProps,
-        ) => {
-          const pTexture = drawCall.getTexture("p");
-          const pOffset = drawCall.getTextureOffset("p");
-          const qTexture = drawCall.getTexture("q");
-          const qOffset = drawCall.getTextureOffset("q");
-          const materialsTexture = drawCall.getTexture("materials");
-          const materialsOffset = drawCall.getTextureOffset("materials");
-          const materialsWeightsTexture =
-            drawCall.getTexture("materialsWeights");
-          const materialsWeightsOffset =
-            drawCall.getTextureOffset("materialsWeights");
-          const grassPropsTexture = drawCall.getTexture("grassProps");
-          const grassPropsOffset = drawCall.getTextureOffset("grassProps");
-
-          let index = 0;
-          for (let j = 0; j < ps.length; j += 3) {
-            // geometry
-            _writeToTexture(ps, pTexture, pOffset, index, 3);
-            _writeToTexture(qs, qTexture, qOffset, index, 4);
-
-            // materials
-            _writeToTexture(
-              materials,
-              materialsTexture,
-              materialsOffset,
-              index,
-              4,
-            );
-            _writeToTexture(
-              materialsWeights,
-              materialsWeightsTexture,
-              materialsWeightsOffset,
-              index,
-              4,
-            );
-
-            // grass props
-            _writeToTexture(
-              grassProps,
-              grassPropsTexture,
-              grassPropsOffset,
-              index,
-              4,
-            );
-
-            index++;
-          }
-
-          drawCall.updateTexture("p", pOffset, index * 4);
-          drawCall.updateTexture("q", qOffset, index * 4);
-          drawCall.updateTexture("materials", materialsOffset, index * 4);
-          drawCall.updateTexture(
-            "materialsWeights",
-            materialsWeightsOffset,
-            index * 4,
-          );
-          drawCall.updateTexture("grassProps", grassPropsOffset, index * 4);
-        };
 
         const {chunkSize} = this.instance;
         const boundingBox = localBox.set(
@@ -805,16 +837,25 @@ export class GrassPolygonMesh extends InstancedBatchedMesh {
             geometryIndex,
             lodIndex,
             numInstances,
-            boundingBox,
+            null//boundingBox,
           );
-          _renderGrassPolygonGeometry(
-            drawChunk,
-            ps,
-            qs,
-            materials,
-            materialsWeights,
-            grassProps,
-          );
+          this.allocator.testBoundingFn = undefined;
+
+          const grassInstances = [];
+          const chunkPos = new Vector3();
+          for (let j = 0; j < numInstances; j++) {
+            const pos = new Vector3(ps[j*3], ps[j*3+1], ps[j*3+2]);
+            chunkPos.add(pos);
+            grassInstances.push(new GrassInstance(
+              pos,
+              new Quaternion(qs[j*4], qs[j*4+1], qs[j*4+2], qs[j*4+3]),
+              [materials[j*4], materials[j*4+1], materials[j*4+2], materials[j*4+3]],
+              [materialsWeights[j*4], materialsWeights[j*4+1], materialsWeights[j*4+2], materialsWeights[j*4+3]],
+              [grassProps[j*4], grassProps[j*4+1], grassProps[j*4+2], grassProps[j*4+3]],
+            ));
+          }
+          chunkPos.divideScalar(grassInstances.length);
+          this.instances.push({grass: grassInstances, drawcall: drawChunk, centroid: chunkPos});
           drawChunks[i] = drawChunk;
         }
         const key = procGenManager.getNodeHash(chunk);
@@ -823,7 +864,28 @@ export class GrassPolygonMesh extends InstancedBatchedMesh {
     }
   }
 
+  sort(){
+    //ordering chunks based on player position //todo on player camera
+    const playerPos = usePlayersManager().getLocalPlayer().position;
+    const order = Array.from(this.instances.keys());
+    order.sort((a, b)=>{
+      const l1 = this.instances[a].centroid.clone().sub(playerPos).length();
+      const l2 = this.instances[b].centroid.clone().sub(playerPos).length();
+      return l2 - l1;
+    });
+    this.allocator.setOrder(order);
+
+    //drawing
+    let index = 0;
+    for(const id of order){
+      const ins = this.instances[id];
+      this._renderGrassPolygonGeometry(ins.drawcall, ins.grass, index);
+      index++;
+    }
+  }
+
   removeChunk(chunk) {
+    return;
     const key = procGenManager.getNodeHash(chunk);
     const drawChunks = this.allocatedChunks.get(key);
     if (drawChunks) {
