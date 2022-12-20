@@ -377,11 +377,12 @@ export class LiquidMesh extends BufferedMesh {
     const hasSwim = !!swimAction;
 
     const _setSwimAction = () => {
-      !hasSwim && player.setControlAction(INITIAL_SWIM_ACTION);
+      const newSwimAction = INITIAL_SWIM_ACTION
+      player.actionsManager.tryAddAction(newSwimAction);
     };
 
     const _removeSwimAction = () => {
-      hasSwim && player.removeAction(SWIM_ACTION);
+      player.actionsManager.tryRemoveAction(SWIM_ACTION);
     };
 
     if (contactWater) {
