@@ -35,10 +35,11 @@ const maxDrawCallsPerGeometry = 256;
 //
 
 export class InstancedObjectMesh extends THREE.Object3D {
-  constructor({instance, physics, urls, shadow}) {
+  constructor({instance, physics, urls, shadow, assetType}) {
     super();
 
     this.urls = urls;
+    this.assetType = assetType;
 
     this.polygonMesh = new PolygonMesh({
       instance,
@@ -47,6 +48,7 @@ export class InstancedObjectMesh extends THREE.Object3D {
       maxInstancesPerGeometryPerDrawCall,
       maxDrawCallsPerGeometry,
       shadow,
+      assetType
     });
     this.add(this.polygonMesh);
 
@@ -75,7 +77,7 @@ export class InstancedObjectMesh extends THREE.Object3D {
 
   async waitForLoad() {
     const [polygonPackage, spritesheetPackage] = await Promise.all([
-      PolygonPackage.loadUrls(this.urls, meshLodSpecs, this.physics),
+      PolygonPackage.loadUrls(this.urls, meshLodSpecs, this.physics, this.assetType),
       SpritesheetPackage.loadUrls(this.urls),
     ]);
     this.polygonMesh.setPackage(polygonPackage);
@@ -84,7 +86,7 @@ export class InstancedObjectMesh extends THREE.Object3D {
 }
 
 export class InstancedObjectGroup extends THREE.Object3D {
-  constructor({instance, urls, physics, shadow}) {
+  constructor({instance, urls, physics, shadow, assetType}) {
     super();
 
     this.urls = urls;
@@ -97,6 +99,7 @@ export class InstancedObjectGroup extends THREE.Object3D {
         shadow,
         instance,
         physics,
+        assetType
       });
       this.meshes.push(mesh);
       this.add(mesh);
