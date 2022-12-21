@@ -20,6 +20,9 @@ const _createTreeMaterial = (attributeTextures, maxInstancesPerGeometryPerDrawCa
       lightPos: {
         value: new THREE.Vector3()
       },
+      lightIntensity: {
+        value: 0
+      },
       eye: {
         value: new THREE.Vector3()
       }
@@ -77,6 +80,7 @@ const _createTreeMaterial = (attributeTextures, maxInstancesPerGeometryPerDrawCa
         uniform float uTime;
         uniform vec3 eye;
         uniform vec3 lightPos;
+        uniform float lightIntensity;
         uniform sampler2D map;
   
         varying vec2 vUv;
@@ -88,10 +92,7 @@ const _createTreeMaterial = (attributeTextures, maxInstancesPerGeometryPerDrawCa
           float d = (NoH * a2 - NoH) * NoH + 1.; 
           return a2 / (PI * d * d);         
         }
-        float WrapRampNL(float nl, float threshold, float smoothness) {
-          nl = smoothstep(threshold - smoothness * 0.5, threshold + smoothness * 0.5, nl);
-          return nl;
-        }
+        
         // cosine gradient 
         const float TAU = 2. * 3.14159265;
         const vec4 phases = vec4(0.34, 0.48, 0.27, 0);
@@ -114,6 +115,9 @@ const _createTreeMaterial = (attributeTextures, maxInstancesPerGeometryPerDrawCa
           vec3 surfaceNormal = normalize(vNormal);
           vec3 lightDir = normalize(lightPos);
           float NdotL = max(0.0, dot(lightDir, surfaceNormal));
+          float EdotL = max(0.0, dot(eyeDirection, surfaceNormal));
+
+
           bool isLeaf = vColor.r > 0.1;
           vec4 col;
           vec4 treeColor;
@@ -131,10 +135,13 @@ const _createTreeMaterial = (attributeTextures, maxInstancesPerGeometryPerDrawCa
             discard;
           }
   
+          float topColor = dot(vec3(0.0, 1.0, 0.0), surfaceNormal) * 0.5 + 0.5;
           vec4 cosGradColor = cosGradient(NdotL, phases, amplitudes, frequencies, offsets);
-          vec3 ambient = cosGradColor.rgb;
-          float albedoLerp = 0.6;
-          vec3 albedo = mix(vec3(0.0399, 0.570, 0.164), vec3(0.483, 0.950, 0.171), NdotL + albedoLerp).rgb;
+          vec3 ambient = cosGradColor.rgb * smoothstep(0.1, 0.99, topColor);
+
+
+          float albedoLerp = mix(1. - EdotL, NdotL, 0.5) + 0.4;
+          vec3 albedo = mix(vec3(0.0399, 0.570, 0.164), vec3(0.483, 0.950, 0.171), albedoLerp).rgb;
           vec3 diffuse = mix(ambient.rgb * albedo.rgb, albedo.rgb, NdotL);
           vec3 lightToEye = normalize(lightPos + eye);
           float specularRoughness = 0.6;
@@ -144,7 +151,7 @@ const _createTreeMaterial = (attributeTextures, maxInstancesPerGeometryPerDrawCa
           vec3 specularColor = isLeaf ? albedo * specular * specularIntensity : vec3(specular * specularIntensity);
           vec3 backLightDir = normalize(surfaceNormal + lightPos);
           float backSSS = saturate(dot(eyeDirection, -backLightDir));
-          float backSSSIntensity = (1. - saturate(dot(eyeDirection, surfaceNormal))) * 1.0;
+          float backSSSIntensity = (1. - EdotL) * 1.0;
           backSSS = saturate(dot(pow(backSSS, 10.), backSSSIntensity));
   
           float colorIntensity = 0.3;
@@ -156,7 +163,7 @@ const _createTreeMaterial = (attributeTextures, maxInstancesPerGeometryPerDrawCa
             // float topColor = dot(vec3(0.0, 1.0, 0.0), surfaceNormal) * 0.5 + 0.5;
             // gl_FragColor.rgb *= smoothstep(0.1, 0.99, topColor) * 1.5;
             
-            gl_FragColor.rgb += backSSS;
+            gl_FragColor.rgb += backSSS * lightIntensity * 0.1;
           }
           else {
             gl_FragColor.rgb = (treeColor.rgb + specularColor) * colorIntensity * 0.5;

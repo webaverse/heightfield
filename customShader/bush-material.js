@@ -20,6 +20,9 @@ const _createBushMaterial = (attributeTextures, maxInstancesPerGeometryPerDrawCa
       lightPos: {
         value: new THREE.Vector3()
       },
+      lightIntensity: {
+        value: 0
+      },
       eye: {
         value: new THREE.Vector3()
       }
@@ -83,32 +86,13 @@ const _createBushMaterial = (attributeTextures, maxInstancesPerGeometryPerDrawCa
           float d = (NoH * a2 - NoH) * NoH + 1.; 
           return a2 / (PI * d * d);         
         }
-        float WrapRampNL(float nl, float threshold, float smoothness) {
-          nl = smoothstep(threshold - smoothness * 0.5, threshold + smoothness * 0.5, nl);
-          return nl;
-        }
-        // cosine gradient 
-        const float TAU = 2. * 3.14159265;
-        const vec4 phases = vec4(0.34, 0.48, 0.27, 0);
-        const vec4 amplitudes = vec4(4.02, 0.34, 0.65, 0);
-        const vec4 frequencies = vec4(0.00, 0.48, 0.08, 0);
-        const vec4 offsets = vec4(0.21, 0.33, 0.06, -0.38);
-        vec4 cosGradient(float x, vec4 phase, vec4 amp, vec4 freq, vec4 offset){
-          phase *= TAU;
-          x *= TAU;
-          return vec4(
-            offset.r + amp.r * 0.5 * cos(x * freq.r + phase.r) + 0.5,
-            offset.g + amp.g * 0.5 * cos(x * freq.g + phase.g) + 0.5,
-            offset.b + amp.b * 0.5 * cos(x * freq.b + phase.b) + 0.5,
-            offset.a + amp.a * 0.5 * cos(x * freq.a + phase.a) + 0.5
-          );
-        }
-  
+        
         void main() {
           vec3 eyeDirection = normalize(eye - vWorldPosition);
           vec3 surfaceNormal = normalize(vNormal);
           vec3 lightDir = normalize(lightPos);
           float NdotL = max(0.0, dot(lightDir, surfaceNormal));
+          float EdotL = max(0.0, dot(eyeDirection, surfaceNormal));
           
           vec4 col;
           vec4 bushColor = texture2D(map, vUv);
@@ -117,23 +101,22 @@ const _createBushMaterial = (attributeTextures, maxInstancesPerGeometryPerDrawCa
             discard;
           }
   
-          vec4 cosGradColor = cosGradient(NdotL, phases, amplitudes, frequencies, offsets);
-          vec3 ambient = vec3(0.0399, 0.570, 0.164);
-          float albedoLerp = 0.7;
-          vec3 albedo = cosGradColor.rgb;
-          vec3 diffuse = mix(ambient.rgb * albedo.rgb, albedo.rgb, NdotL);
+          float albedoLerp = NdotL;
+          vec3 albedo = mix(vec3(0.0399, 0.570, 0.164), vec3(0.483, 0.950, 0.171), albedoLerp).rgb;
+
+          vec3 diffuse = mix(albedo.rgb * 0.5, albedo.rgb, NdotL);
           vec3 lightToEye = normalize(lightPos + eye);
           float specularRoughness = 0.6;
           float specularIntensity = 0.9;
           float specular = DGGX(specularRoughness * specularRoughness, NdotL);
-          // vec3 specularColor = albedo * specular * specularIntensity;
+          
           vec3 specularColor = albedo * specular * specularIntensity;
           vec3 backLightDir = normalize(surfaceNormal + lightPos);
           float backSSS = saturate(dot(eyeDirection, -backLightDir));
           float backSSSIntensity = (1. - saturate(dot(eyeDirection, surfaceNormal))) * 1.0;
           backSSS = saturate(dot(pow(backSSS, 10.), backSSSIntensity));
   
-          float colorIntensity = 0.3;
+          float colorIntensity = 0.17;
           
           gl_FragColor.rgb = (diffuse + albedo + specularColor) * colorIntensity;
           

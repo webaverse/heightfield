@@ -24,16 +24,16 @@ const MODEL_FILES_EXTENSION = "glb";
 const TEXTURE_FILES_EXTENSION = "png";
 
 // Model Files
-const SHORT_TREE_NAME = "test-tree9";
-const MEDIUM_TREE_NAME = "test-tree9";
-const TALL_TREE_NAME = "test-tree9";
+const SHORT_TREE_NAME = "test-tree10";
+const MEDIUM_TREE_NAME = "test-tree10";
+const TALL_TREE_NAME = "test-tree10";
 const FLOWER_1_NAME = "flowers1";
 const FLOWER_2_NAME = "flowers2";
 const FLOWER_3_NAME = "flowers4";
 const BUSH_NAME = 'bush';
 const BIG_ROCK_NAME = 'big_rock_v2';
 const MED_ROCK_NAME = 'med_rock_v2';
-const GRASS_NAME = 'grass';
+const GRASS_NAME = 'grass2';
 const ORE_NAME = 'green_biome_ore';
 
 // Texture Files

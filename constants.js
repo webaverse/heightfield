@@ -20,3 +20,10 @@ export const WIND_EFFECT_OVER_GRASS = 0.4;
 export const WIND_SPEED = 0.5;
 
 export const GET_COLOR_PARAMETER_NAME = 'materialIndex';
+
+export const TREE_ADDITIONAL_ATTRIBUTE = [
+  {
+    name: "color",
+    itemSize: 4,
+  }
+]

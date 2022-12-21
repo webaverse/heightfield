@@ -122,7 +122,7 @@ const _createGrassMaterial = (attributeTextures, maxInstancesPerGeometryPerDrawC
           
           vec4 bush = texture2D(map, vUv);
           vec3 grassColor = vec3(0.0375, 0.750, 0.0494);
-          float grassColorLerp = 0.7;
+          float grassColorLerp = 0.9;
           grassColor = mix(grassColor * vGrassHeight, grassColor, grassColorLerp) * bush.r;
 
           vec3 diffuse = mix(grassColor * vGrassHeight, vec3(0.0450, 0.900, 0.0592), NdotL);

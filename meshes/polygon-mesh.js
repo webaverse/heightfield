@@ -10,6 +10,7 @@ import {
   WIND_SPEED,
   // bufferSize,
   WORLD_BASE_HEIGHT,
+  TREE_ADDITIONAL_ATTRIBUTE
 } from "../constants.js";
 import {_disableOutgoingLights, _patchOnBeforeCompileFunction} from "../utils/utils.js";
 import _createTreeMaterial from '../customShader/tree-material.js';
@@ -359,16 +360,9 @@ export class PolygonMesh extends InstancedBatchedMesh {
     const customColorFragment = /* glsl */ `
       #include <alphamap_fragment>
     `;
-    let material;
-    if (assetType === 'tree') {
-      material = _createTreeMaterial(attributeTextures, maxInstancesPerGeometryPerDrawCall);
-    }
-    else if (assetType === 'bush') {
-      material = _createBushMaterial(attributeTextures, maxInstancesPerGeometryPerDrawCall);
-    }
-    else {
-      // material
-      material = new THREE.MeshStandardMaterial({
+
+    const _craeteDefaultMaterial = () => {
+      const m = new THREE.MeshStandardMaterial({
         side: THREE.DoubleSide,
         transparent: true,
         alphaTest: 0.1,
@@ -383,11 +377,26 @@ export class PolygonMesh extends InstancedBatchedMesh {
           return shader;
         },
       });
-      _disableOutgoingLights(material);
+      _disableOutgoingLights(m);
+      return m;
     }
-
     
-
+    let material;
+    switch (assetType) {
+      case 'tree': {
+        material = _createTreeMaterial(attributeTextures, maxInstancesPerGeometryPerDrawCall);
+        break;
+      }
+      case 'bush': {
+        material = _createBushMaterial(attributeTextures, maxInstancesPerGeometryPerDrawCall);
+        break;
+      }
+      default: {
+        material = _craeteDefaultMaterial();
+        break;
+      }
+    }
+    
     const customDepthMaterial = new THREE.MeshDepthMaterial({
       depthPacking: THREE.RGBADepthPacking,
       alphaTest: 0.5,
@@ -506,6 +515,7 @@ export class PolygonMesh extends InstancedBatchedMesh {
       for (const light of lightsManager.lights) {
         if (light.isDirectionalLight) {
           this.material.uniforms.lightPos.value.copy(light.position).multiplyScalar(sunMoonRotationRadius);
+          this.material.uniforms.lightIntensity.value = light.intensity;
           break;
         }
       }
@@ -515,19 +525,20 @@ export class PolygonMesh extends InstancedBatchedMesh {
     }
     this.material.uniforms.eye.value.copy(camera.position);
   }
-
+  getAdditionalAttribute(assetType) {
+    switch (assetType) {
+      case 'tree': {
+        return TREE_ADDITIONAL_ATTRIBUTE;
+      }
+      default: {
+        return [];
+      }
+    }
+  }
   setPackage(pkg) {
     // console.log('set package', pkg);
     const {lodMeshes, textureNames} = pkg;
-    const additionalAttributeSpecs = [];
-    if (this.assetType === 'tree') {
-      additionalAttributeSpecs.push(
-        {
-          name: "color",
-          itemSize: 4,
-        }
-      )
-    }
+    const additionalAttributeSpecs = this.getAdditionalAttribute(this.assetType);
     this.allocator.setGeometries(
       lodMeshes.map(lodMeshesArray => {
         return lodMeshesArray.map(lodMesh => {
@@ -608,178 +619,181 @@ export class GrassPolygonMesh extends InstancedBatchedMesh {
 
     let geometry;
 
-    // // custom shaders
-    // const _setupUniforms = shader => {
-    //   _setupTextureAttributes(shader, instanceAttributes, attributeTextures);
-    //   shader.uniforms.uGrassBladeHeight = {
-    //     value: null,
-    //   };
-    //   shader.uniforms.uTime = {
-    //     value: 0,
-    //   };
-    // };
+    // custom shaders
+    const _setupUniforms = shader => {
+      _setupTextureAttributes(shader, instanceAttributes, attributeTextures);
+      shader.uniforms.uGrassBladeHeight = {
+        value: null,
+      };
+      shader.uniforms.uTime = {
+        value: 0,
+      };
+    };
 
-    // const customUvParsVertex = /* glsl */ `
-    //   #undef USE_INSTANCING
+    const customUvParsVertex = /* glsl */ `
+      #undef USE_INSTANCING
 
-    //   #include <uv_pars_vertex>
+      #include <uv_pars_vertex>
 
-    //   uniform sampler2D pTexture;
-    //   uniform sampler2D qTexture;
-    //   uniform sampler2D cTexture;
-    //   uniform sampler2D sTexture;
-    //   uniform sampler2D materialsTexture;
-    //   uniform sampler2D materialsWeightsTexture;
-    //   uniform sampler2D grassPropsTexture;
-    //   uniform float uGrassBladeHeight;
-    //   uniform float uTime;
+      uniform sampler2D pTexture;
+      uniform sampler2D qTexture;
+      uniform sampler2D cTexture;
+      uniform sampler2D sTexture;
+      uniform sampler2D materialsTexture;
+      uniform sampler2D materialsWeightsTexture;
+      uniform sampler2D grassPropsTexture;
+      uniform float uGrassBladeHeight;
+      uniform float uTime;
 
-    //   varying vec2 vObjectUv;
-    //   varying vec3 vObjectNormal;
-    //   varying vec3 vPosition;
-    //   varying vec3 vColor;
+      varying vec2 vObjectUv;
+      varying vec3 vObjectNormal;
+      varying vec3 vPosition;
+      varying vec3 vColor;
 
-    //   flat varying ivec4 vMaterials;
-    //   varying vec4 vMaterialsWeights;
+      flat varying ivec4 vMaterials;
+      varying vec4 vMaterialsWeights;
 
-    //   varying float vGrassHeight;
+      varying float vGrassHeight;
 
-    //   vec3 rotateVertexPosition(vec3 position, vec4 q) { 
-    //     return position + 2.0 * cross(q.xyz, cross(q.xyz, position) + q.w * position);
-    //   }
-    // `;
+      vec3 rotateVertexPosition(vec3 position, vec4 q) { 
+        return position + 2.0 * cross(q.xyz, cross(q.xyz, position) + q.w * position);
+      }
+    `;
 
-    // const customBeginVertex = /* glsl */ `
-    //   #include <begin_vertex>
+    const customBeginVertex = /* glsl */ `
+      #include <begin_vertex>
 
-    //   int instanceIndex = gl_DrawID * ${maxInstancesPerGeometryPerDrawCall} + gl_InstanceID;
+      int instanceIndex = gl_DrawID * ${maxInstancesPerGeometryPerDrawCall} + gl_InstanceID;
 
-    //   const float width = ${attributeTextures.p.image.width.toFixed(8)};
-    //   const float height = ${attributeTextures.p.image.height.toFixed(8)};
+      const float width = ${attributeTextures.p.image.width.toFixed(8)};
+      const float height = ${attributeTextures.p.image.height.toFixed(8)};
 
-    //   float x = mod(float(instanceIndex), width);
-    //   float y = floor(float(instanceIndex) / width);
-    //   vec2 pUv = (vec2(x, y) + 0.5) / vec2(width, height);
+      float x = mod(float(instanceIndex), width);
+      float y = floor(float(instanceIndex) / width);
+      vec2 pUv = (vec2(x, y) + 0.5) / vec2(width, height);
 
-    //   vec3 p = texture2D(pTexture, pUv).xyz; // position
-    //   vec4 q = texture2D(qTexture, pUv).xyzw; // quaternion
-    //   float s = texture2D(sTexture, pUv).x; // scale
-    //   vec3 c = texture2D(cTexture, pUv).xyz; // color
+      vec3 p = texture2D(pTexture, pUv).xyz; // position
+      vec4 q = texture2D(qTexture, pUv).xyzw; // quaternion
+      float s = texture2D(sTexture, pUv).x; // scale
+      vec3 c = texture2D(cTexture, pUv).xyz; // color
 
-    //   vec4 materials = texture2D(materialsTexture, pUv).xyzw;
-    //   vec4 materialsWeights = texture2D(materialsWeightsTexture, pUv).xyzw;
+      vec4 materials = texture2D(materialsTexture, pUv).xyzw;
+      vec4 materialsWeights = texture2D(materialsWeightsTexture, pUv).xyzw;
 
-    //   vec4 grassProps = texture2D(grassPropsTexture, pUv).xyzw;
+      vec4 grassProps = texture2D(grassPropsTexture, pUv).xyzw;
 
-    //   float randomBladeValue = grassProps.x;
-    //   float grassHeightMultiplier = grassProps.w;
+      float randomBladeValue = grassProps.x;
+      float grassHeightMultiplier = grassProps.w;
 
-    //   // * Grass Height Range -> [0.0, 1.0]
-    //   float grassHeight = transformed.y / uGrassBladeHeight * grassHeightMultiplier;
-    //   vec3 scaledPosition = transformed;
-    //   scaledPosition *= s; // scale
-    //   scaledPosition.y *= grassHeight; // height scale
+      // * Grass Height Range -> [0.0, 1.0]
+      float grassHeight = transformed.y / uGrassBladeHeight * grassHeightMultiplier;
+      vec3 scaledPosition = transformed;
+      scaledPosition *= s; // scale
+      scaledPosition.y *= grassHeight; // height scale
 
-    //   // height
-    //   float grassWorldHeight = grassHeight * s;
+      // height
+      float grassWorldHeight = grassHeight * s;
 
-    //   // wind
-    //   float windSpeed = uTime * randomBladeValue * ${WIND_SPEED};
-    //   float wind = sin(windSpeed) * grassWorldHeight * ${WIND_EFFECT_OVER_GRASS};
+      // wind
+      float windSpeed = uTime * randomBladeValue * ${WIND_SPEED};
+      float wind = sin(windSpeed) * grassWorldHeight * ${WIND_EFFECT_OVER_GRASS};
 
-    //   // transform processing
-    //   transformed = rotateVertexPosition(scaledPosition, q);
-    //   transformed += p;
-    //   transformed.x += wind;
+      // transform processing
+      transformed = rotateVertexPosition(scaledPosition, q);
+      transformed += p;
+      transformed.x += wind;
 
-    //   // vObjectUv = uv;
-    //   vObjectNormal = normal;
-    //   vPosition = transformed;
-    //   vColor = c;
-    //   vGrassHeight = grassWorldHeight;
-    //   vMaterials = ivec4(materials);
-    //   vMaterialsWeights = materialsWeights;
-    //   `;
+      // vObjectUv = uv;
+      vObjectNormal = normal;
+      vPosition = transformed;
+      vColor = c;
+      vGrassHeight = grassWorldHeight;
+      vMaterials = ivec4(materials);
+      vMaterialsWeights = materialsWeights;
+      `;
 
-    // const customUvParsFragment = /* glsl */ `
-    //   #undef USE_INSTANCING
+    const customUvParsFragment = /* glsl */ `
+      #undef USE_INSTANCING
 
-    //   #include <uv_pars_fragment>
+      #include <uv_pars_fragment>
 
-    //   varying vec2 vObjectUv;
-    //   varying vec3 vObjectNormal;
-    //   varying vec3 vPosition;
-    //   varying vec3 vColor;
+      varying vec2 vObjectUv;
+      varying vec3 vObjectNormal;
+      varying vec3 vPosition;
+      varying vec3 vColor;
 
-    //   flat varying ivec4 vMaterials;
-    //   varying vec4 vMaterialsWeights;
+      flat varying ivec4 vMaterials;
+      varying vec4 vMaterialsWeights;
 
-    //   varying float vGrassHeight;
+      varying float vGrassHeight;
 
-    //   uniform float uTime;
+      uniform float uTime;
 
-    //   vec3 getGrassColor(int ${GET_COLOR_PARAMETER_NAME}) {
-    //     ${GRASS_COLORS_SHADER_CODE};
-    //   }
-    //   vec3 blendSamples(vec3 samples[4], vec4 weights) {
-    //     float weightSum = weights.x + weights.y + weights.z + weights.w;
-    //     return (samples[0] * weights.x + samples[1] * weights.y + samples[2] * weights.z + samples[3] * weights.w) / weightSum;
-    //   }
-    //   vec3 blendGrassColors(ivec4 materials, vec4 weights) {
-    //     vec3 samples[4];
+      vec3 getGrassColor(int ${GET_COLOR_PARAMETER_NAME}) {
+        ${GRASS_COLORS_SHADER_CODE};
+      }
+      vec3 blendSamples(vec3 samples[4], vec4 weights) {
+        float weightSum = weights.x + weights.y + weights.z + weights.w;
+        return (samples[0] * weights.x + samples[1] * weights.y + samples[2] * weights.z + samples[3] * weights.w) / weightSum;
+      }
+      vec3 blendGrassColors(ivec4 materials, vec4 weights) {
+        vec3 samples[4];
 
-    //     samples[0] = getGrassColor(materials.x);
-    //     samples[1] = getGrassColor(materials.y);
-    //     samples[2] = getGrassColor(materials.z);
-    //     samples[3] = getGrassColor(materials.w);
+        samples[0] = getGrassColor(materials.x);
+        samples[1] = getGrassColor(materials.y);
+        samples[2] = getGrassColor(materials.z);
+        samples[3] = getGrassColor(materials.w);
 
-    //     return blendSamples(samples, weights);
-    //   }
-    // `;
+        return blendSamples(samples, weights);
+      }
+    `;
 
-    // const customColorFragment = /* glsl */ `
-    //   #include <alphamap_fragment>
+    const customColorFragment = /* glsl */ `
+      #include <alphamap_fragment>
 
-    //   float grassAlpha = diffuseColor.a * vGrassHeight;
-    //   vec3 grassColor = blendGrassColors(vMaterials, vMaterialsWeights);
+      float grassAlpha = diffuseColor.a * vGrassHeight;
+      vec3 grassColor = blendGrassColors(vMaterials, vMaterialsWeights);
 
-    //   grassColor.r += vGrassHeight / 1.5;
-    //   grassColor.g += vGrassHeight / 1.5;
-    //   grassColor.b += vGrassHeight / 4.0;
+      grassColor.r += vGrassHeight / 1.5;
+      grassColor.g += vGrassHeight / 1.5;
+      grassColor.b += vGrassHeight / 4.0;
 
-    //   grassColor *= vColor;
+      grassColor *= vColor;
 
-    //   grassColor = clamp(grassColor, 0.0, 0.85);
+      grassColor = clamp(grassColor, 0.0, 0.85);
+      if (diffuseColor.a < 0.5) {
+        discard;
+      }
+      diffuseColor = vec4(grassColor, 1.0);
+      
+    `;
 
-    //   diffuseColor = vec4(grassColor, grassAlpha);
-    // `;
-
-    // // material
-    // const material = new THREE.MeshLambertMaterial({
-    //   metalness: 0.8,
-    //   roughness: 0.1,
-    //   side: THREE.DoubleSide,
-    //   transparent: true,
-    //   depthWrite: false,
-    //   // alphaTest: 0.01,
-    //   onBeforeCompile: shader => {
-    //     _storeShader(material, shader);
-    //     _setupUniforms(shader);
-    //     _setupPolygonMeshShaderCode(shader, {
-    //       customUvParsVertex,
-    //       customBeginVertex,
-    //       customUvParsFragment,
-    //       customColorFragment,
-    //     });
+    // material
+    const material = new THREE.MeshLambertMaterial({
+      metalness: 0.8,
+      roughness: 0.1,
+      side: THREE.DoubleSide,
+      // transparent: true,
+      // depthWrite: false,
+      // alphaTest: 0.01,
+      onBeforeCompile: shader => {
+        _storeShader(material, shader);
+        _setupUniforms(shader);
+        _setupPolygonMeshShaderCode(shader, {
+          customUvParsVertex,
+          customBeginVertex,
+          customUvParsFragment,
+          customColorFragment,
+        });
 
 
-    //     return shader;
-    //   },
-    // });
+        return shader;
+      },
+    });
 
-    // _disableOutgoingLights(material);
+    _disableOutgoingLights(material);
 
-    const material = _createGrassMaterial(attributeTextures, maxInstancesPerGeometryPerDrawCall)
+    // const material = _createGrassMaterial(attributeTextures, maxInstancesPerGeometryPerDrawCall)
 
     const customDepthMaterial = new THREE.MeshDepthMaterial({
       depthPacking: THREE.RGBADepthPacking,
@@ -926,14 +940,14 @@ export class GrassPolygonMesh extends InstancedBatchedMesh {
     for (const textureName of textureNames) {
       this.material[textureName] = lodMeshes[0][0].material[textureName];
     }
-    if (!this.material.uniforms.map.value) {
-      this.material.uniforms.map.value = this.material.map;
-    }
+    // if (!this.material.uniforms.map.value) {
+    //   this.material.uniforms.map.value = this.material.map;
+    // }
     const setUniforms = shader => {
       shader.uniforms.uGrassBladeHeight = {value: LOD0MeshHeight};
     };
-    this.material.uniforms.uGrassBladeHeight.value = LOD0MeshHeight;
-    // _patchOnBeforeCompileFunction(this.material, setUniforms);
+    // this.material.uniforms.uGrassBladeHeight.value = LOD0MeshHeight;
+    _patchOnBeforeCompileFunction(this.material, setUniforms);
     if (this.shadow) {
       _patchOnBeforeCompileFunction(this.customDepthMaterial, setUniforms);
       _patchOnBeforeCompileFunction(this.customDistanceMaterial, setUniforms);
