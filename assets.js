@@ -14,7 +14,7 @@ export const procgenAssetsBaseUrl2 = 'http://localhost:3000/practice/heightfield
 const TERRAIN_TEXTURES_DIRECTORY_NAME = 'terrain/textures/';
 const TREE_MODELS_DIRECTORY_NAME = '';
 const FLOWER_MODELS_DIRECTORY_NAME = 'vegetation/flowers/';
-const BUSH_MODELS_DIRECTORY_NAME = 'vegetation/bushes/';
+const BUSH_MODELS_DIRECTORY_NAME = '';
 const ROCK_MODELS_DIRECTORY_NAME = 'rocks/';
 const ORE_MODELS_DIRECTORY_NAME = 'ores/';
 const GRASS_MODELS_DIRECTORY_NAME = 'grass/';
@@ -30,7 +30,7 @@ const TALL_TREE_NAME = "test-tree9";
 const FLOWER_1_NAME = "flowers1";
 const FLOWER_2_NAME = "flowers2";
 const FLOWER_3_NAME = "flowers4";
-const BUSH_NAME = 'bush_1_dream';
+const BUSH_NAME = 'bush';
 const BIG_ROCK_NAME = 'big_rock_v2';
 const MED_ROCK_NAME = 'med_rock_v2';
 const GRASS_NAME = 'grass_1_dream';
@@ -142,7 +142,7 @@ export const glbUrlSpecs = {
     return `${procgenAssetsBaseUrl}${u}`;
   }),
   bushes: BUSHES_INFO.map(t => t.getModelPath()).map(u => {
-    return `${procgenAssetsBaseUrl}${u}`;
+    return `${procgenAssetsBaseUrl2}${u}`;
   }),
   rocks: ROCKS_INFO.map(t => t.getModelPath()).map(u => {
     return `${procgenAssetsBaseUrl}${u}`;

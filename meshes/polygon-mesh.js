@@ -357,7 +357,7 @@ export class PolygonMesh extends InstancedBatchedMesh {
       #include <alphamap_fragment>
     `;
     let material;
-    if (assetType === 'tree') {
+    if (assetType === 'tree' || assetType === 'bush') {
       material = new THREE.ShaderMaterial({
         uniforms: {
           uTime: {
@@ -471,10 +471,10 @@ export class PolygonMesh extends InstancedBatchedMesh {
               vec3 surfaceNormal = normalize(vNormal);
               vec3 lightDir = normalize(lightPos);
               float NdotL = max(0.0, dot(lightDir, surfaceNormal));
-
+              bool isLeaf = vColor.r > 0.1;
               vec4 col;
               vec4 treeColor;
-              if (vColor.r > 0.1) {
+              if (isLeaf) {
                 vec4 leaf = texture2D(map, vUv);
                 treeColor = leaf;
                 gl_FragColor.a = treeColor.a;
@@ -498,15 +498,15 @@ export class PolygonMesh extends InstancedBatchedMesh {
               float specularIntensity = 0.9;
               float specular = DGGX(specularRoughness * specularRoughness, NdotL);
               // vec3 specularColor = albedo * specular * specularIntensity;
-              vec3 specularColor = vColor.r > 0.1 ? albedo * specular * specularIntensity : vec3(specular * specularIntensity);
+              vec3 specularColor = isLeaf ? albedo * specular * specularIntensity : vec3(specular * specularIntensity);
               vec3 backLightDir = normalize(surfaceNormal + lightPos);
               float backSSS = saturate(dot(eyeDirection, -backLightDir));
-              float backSSSIntensity = smoothstep(0.8, 1.0, backSSS) * 0.5;
-              backSSS = saturate(dot(pow(backSSS, 1.), 1.0));
+              float backSSSIntensity = (1. - saturate(dot(eyeDirection, surfaceNormal))) * 1.0;
+              backSSS = saturate(dot(pow(backSSS, 10.), backSSSIntensity));
 
               float colorIntensity = 0.3;
               
-              if (vColor.r > 0.1) {
+              if (isLeaf) {
                 gl_FragColor.rgb = (diffuse + albedo + specularColor) * colorIntensity;
                 gl_FragColor.rgb = mix(gl_FragColor.rgb * 0.6, gl_FragColor.rgb, treeColor.r);
                 

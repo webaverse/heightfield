@@ -50,11 +50,10 @@ export class TerrainObjectsMesh extends THREE.Object3D {
 
   update(timestamp) {
     for (const t of this.meshes.treeMesh.children) {
-      // if (t.children[0].material) {
-      //   t.children[0].material.uniforms.map.value = t.children[0].material.map;
-      // }
       t.children[0].update(timestamp);
     }
+    this.meshes.bushMesh.children[0].update(timestamp);
+    
     for (const [key, mesh] of Object.entries(this.meshes)) {
       mesh.update(timestamp);
     }
