@@ -17,7 +17,7 @@ const FLOWER_MODELS_DIRECTORY_NAME = 'vegetation/flowers/';
 const BUSH_MODELS_DIRECTORY_NAME = '';
 const ROCK_MODELS_DIRECTORY_NAME = 'rocks/';
 const ORE_MODELS_DIRECTORY_NAME = 'ores/';
-const GRASS_MODELS_DIRECTORY_NAME = 'grass/';
+const GRASS_MODELS_DIRECTORY_NAME = '';
 
 // File Extensions
 const MODEL_FILES_EXTENSION = "glb";
@@ -33,7 +33,7 @@ const FLOWER_3_NAME = "flowers4";
 const BUSH_NAME = 'bush';
 const BIG_ROCK_NAME = 'big_rock_v2';
 const MED_ROCK_NAME = 'med_rock_v2';
-const GRASS_NAME = 'grass_1_dream';
+const GRASS_NAME = 'grass';
 const ORE_NAME = 'green_biome_ore';
 
 // Texture Files
@@ -151,7 +151,7 @@ export const glbUrlSpecs = {
     return `${procgenAssetsBaseUrl}${u}`;
   }),
   grasses: GRASSES_INFO.map(t => t.getModelPath()).map(u => {
-    return `${procgenAssetsBaseUrl}${u}`;
+    return `${procgenAssetsBaseUrl2}${u}`;
   }),
 
   ores: ORES_INFO.map(t => t.getModelPath()).map(u => {

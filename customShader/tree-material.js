@@ -133,7 +133,7 @@ const _createTreeMaterial = (attributeTextures, maxInstancesPerGeometryPerDrawCa
   
           vec4 cosGradColor = cosGradient(NdotL, phases, amplitudes, frequencies, offsets);
           vec3 ambient = cosGradColor.rgb;
-          float albedoLerp = 0.7;
+          float albedoLerp = 0.6;
           vec3 albedo = mix(vec3(0.0399, 0.570, 0.164), vec3(0.483, 0.950, 0.171), NdotL + albedoLerp).rgb;
           vec3 diffuse = mix(ambient.rgb * albedo.rgb, albedo.rgb, NdotL);
           vec3 lightToEye = normalize(lightPos + eye);
@@ -154,7 +154,7 @@ const _createTreeMaterial = (attributeTextures, maxInstancesPerGeometryPerDrawCa
             gl_FragColor.rgb = mix(gl_FragColor.rgb * 0.6, gl_FragColor.rgb, treeColor.r);
             
             // float topColor = dot(vec3(0.0, 1.0, 0.0), surfaceNormal) * 0.5 + 0.5;
-            // gl_FragColor.rgb *= smoothstep(0.1, 0.99, topColor);
+            // gl_FragColor.rgb *= smoothstep(0.1, 0.99, topColor) * 1.5;
             
             gl_FragColor.rgb += backSSS;
           }
