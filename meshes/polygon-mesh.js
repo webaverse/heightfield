@@ -190,43 +190,22 @@ export class PolygonPackage {
       });
     const _getMesh = model => {
       let mesh = null;
-      let meshes = [];
-      let fakeMaterial = null;
-
-      model.traverse(o => {
+      
+      const _recurse = o => {
         if (o.isMesh) {
           mesh = o;
-          meshes.push(o);
+          console.log(mesh);
+          return false;
+        } else {
+          for (let i = 0; i < o.children.length; i++) {
+            if (!_recurse(o.children[i])) {
+              return false;
+            }
+          }
+          return true;
         }
-      });
-      
-      fakeMaterial = mesh.material;
-
-      if (meshes.length > 1) { //hack, since our tree models have 2 meshes now, need to solve this issue in blender.
-        const geometryArray = [];
-        for (const mesh of meshes) {
-          geometryArray.push( mesh.geometry.clone().applyMatrix4( mesh.matrixWorld ) );
-          
-        }
-        const mergedGeom = BufferGeometryUtils.mergeBufferGeometries(geometryArray);
-        mesh = new THREE.Mesh(mergedGeom, fakeMaterial);
-      }
-      
-      // const _recurse = o => {
-      //   if (o.isMesh) {
-      //     mesh = o;
-      //     console.log(mesh);
-      //     return false;
-      //   } else {
-      //     for (let i = 0; i < o.children.length; i++) {
-      //       if (!_recurse(o.children[i])) {
-      //         return false;
-      //       }
-      //     }
-      //     return true;
-      //   }
-      // };
-      // _recurse(model);
+      };
+      _recurse(model);
       return mesh;
     };
     const _generateLodMesh = (() => {
