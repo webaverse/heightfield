@@ -100,9 +100,8 @@ const _createBushMaterial = (attributeTextures, maxInstancesPerGeometryPerDrawCa
           if (gl_FragColor.a < 0.9) {
             discard;
           }
-  
-          float albedoLerp = NdotL;
-          vec3 albedo = mix(vec3(0.0399, 0.570, 0.164), vec3(0.483, 0.950, 0.171), albedoLerp).rgb;
+
+          vec3 albedo = mix(vec3(0.0399, 0.570, 0.164), vec3(0.483, 0.950, 0.171), NdotL).rgb;
 
           vec3 diffuse = mix(albedo.rgb * 0.5, albedo.rgb, NdotL);
           vec3 lightToEye = normalize(lightPos + eye);

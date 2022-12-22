@@ -230,10 +230,22 @@ export class PolygonPackage {
       );
       return lodMeshes;
     };
+    
     const attributeArray =  ["position", "normal", "uv"];
-    if (assetType === 'tree') {
-      attributeArray.push('color');
+
+    const _setAdditionalAttribute = (assetType, array) => {
+      switch (assetType) {
+        case 'tree': {
+          array.push('color');
+          break;
+        }
+        default: {
+          break;
+        }
+      }
     }
+    _setAdditionalAttribute(assetType, attributeArray);
+    
     const models = await Promise.all(urls.map(_loadModel));
     const meshes = models.map(_getMesh);
     const textureAtlasResult = createTextureAtlas(meshes, {
