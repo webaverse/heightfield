@@ -15,7 +15,6 @@ import {
 import {_disableOutgoingLights, _patchOnBeforeCompileFunction} from "../utils/utils.js";
 import _createTreeMaterial from '../customShader/tree-material.js';
 import _createBushMaterial from "../customShader/bush-material.js";
-import _createGrassMaterial from "../customShader/grass-material.js";
 const {
   useCamera,
   useProcGenManager,
@@ -357,20 +356,12 @@ export class PolygonMesh extends InstancedBatchedMesh {
     };
     const customUvParsVertex = /* glsl */ `
       #undef USE_INSTANCING
-
       #include <uv_pars_vertex>
-
-      attribute vec4 color;
-
       varying vec3 vColor;
-      varying vec4 vertexColor;
-      varying vec3 vSNormal;
-
       uniform sampler2D pTexture;
       uniform sampler2D qTexture;
       uniform sampler2D sTexture;
       uniform sampler2D cTexture;
-
       vec3 rotateVertexPosition(vec3 position, vec4 q) { 
         return position + 2.0 * cross(q.xyz, cross(q.xyz, position) + q.w * position);
       }
@@ -378,36 +369,26 @@ export class PolygonMesh extends InstancedBatchedMesh {
 
     const customBeginVertex = /* glsl */ `
       #include <begin_vertex>
-
       int instanceIndex = gl_DrawID * ${maxInstancesPerGeometryPerDrawCall} + gl_InstanceID;
       const float width = ${attributeTextures.p.image.width.toFixed(8)};
       const float height = ${attributeTextures.p.image.height.toFixed(8)};
       float x = mod(float(instanceIndex), width);
       float y = floor(float(instanceIndex) / width);
       vec2 pUv = (vec2(x, y) + 0.5) / vec2(width, height);
-
       vec3 p = texture2D(pTexture, pUv).xyz; // position
       vec4 q = texture2D(qTexture, pUv).xyzw; // quaternion
       float s = texture2D(sTexture, pUv).x; // scale
       vec3 c = texture2D(cTexture, pUv).xyz; // color
-
       transformed *= s; // scale
       transformed = rotateVertexPosition(transformed, q);
       transformed += p;
-
       vColor = c;
-      vertexColor = color;
-      vSNormal = normal;
     `;
 
     const customUvParsFragment = /* glsl */ `
       #undef USE_INSTANCING
-
       #include <uv_pars_fragment>
-
       varying vec3 vColor;
-      varying vec4 vertexColor;
-      varying vec3 vSNormal;
     `;
 
     const customColorFragment = /* glsl */ `
@@ -817,11 +798,7 @@ export class GrassPolygonMesh extends InstancedBatchedMesh {
       grassColor *= vColor;
 
       grassColor = clamp(grassColor, 0.0, 0.85);
-      if (diffuseColor.a < 0.5) {
-        discard;
-      }
-      diffuseColor = vec4(grassColor, 1.0);
-      
+      diffuseColor = vec4(grassColor, grassAlpha);
     `;
 
     // material
@@ -829,8 +806,8 @@ export class GrassPolygonMesh extends InstancedBatchedMesh {
       metalness: 0.8,
       roughness: 0.1,
       side: THREE.DoubleSide,
-      // transparent: true,
-      // depthWrite: false,
+      transparent: true,
+      depthWrite: false,
       // alphaTest: 0.01,
       onBeforeCompile: shader => {
         _storeShader(material, shader);
@@ -848,8 +825,6 @@ export class GrassPolygonMesh extends InstancedBatchedMesh {
     });
 
     _disableOutgoingLights(material);
-
-    // const material = _createGrassMaterial(attributeTextures, maxInstancesPerGeometryPerDrawCall)
 
     const customDepthMaterial = new THREE.MeshDepthMaterial({
       depthPacking: THREE.RGBADepthPacking,
@@ -996,13 +971,11 @@ export class GrassPolygonMesh extends InstancedBatchedMesh {
     for (const textureName of textureNames) {
       this.material[textureName] = lodMeshes[0][0].material[textureName];
     }
-    // if (!this.material.uniforms.map.value) {
-    //   this.material.uniforms.map.value = this.material.map;
-    // }
+
     const setUniforms = shader => {
       shader.uniforms.uGrassBladeHeight = {value: LOD0MeshHeight};
     };
-    // this.material.uniforms.uGrassBladeHeight.value = LOD0MeshHeight;
+
     _patchOnBeforeCompileFunction(this.material, setUniforms);
     if (this.shadow) {
       _patchOnBeforeCompileFunction(this.customDepthMaterial, setUniforms);

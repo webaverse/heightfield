@@ -9,31 +9,31 @@ import {
 const USE_LOCAL_ASSETS = false;
 
 export const procgenAssetsBaseUrl = USE_LOCAL_ASSETS ? 'https://local.webaverse.com/scenes/heightfield/procgen-assets/' : 'https://webaverse.github.io/procgen-assets/';
-export const procgenAssetsBaseUrl2 = 'http://localhost:3000/practice/heightfield/procgen-assets/';
+
 // Directories Names
 const TERRAIN_TEXTURES_DIRECTORY_NAME = 'terrain/textures/';
-const TREE_MODELS_DIRECTORY_NAME = '';
+const TREE_MODELS_DIRECTORY_NAME = 'vegetation/jungle-trees/';
 const FLOWER_MODELS_DIRECTORY_NAME = 'vegetation/flowers/';
-const BUSH_MODELS_DIRECTORY_NAME = '';
+const BUSH_MODELS_DIRECTORY_NAME = 'vegetation/bushes/';
 const ROCK_MODELS_DIRECTORY_NAME = 'rocks/';
 const ORE_MODELS_DIRECTORY_NAME = 'ores/';
-const GRASS_MODELS_DIRECTORY_NAME = '';
+const GRASS_MODELS_DIRECTORY_NAME = 'grass/';
 
 // File Extensions
 const MODEL_FILES_EXTENSION = "glb";
 const TEXTURE_FILES_EXTENSION = "png";
 
 // Model Files
-const SHORT_TREE_NAME = "test-tree10";
-const MEDIUM_TREE_NAME = "test-tree10";
-const TALL_TREE_NAME = "test-tree10";
+const SHORT_TREE_NAME = "jungle_tree_2_variant_texta";
+const MEDIUM_TREE_NAME = "jungle_tree_1_variant_texta";
+const TALL_TREE_NAME = "jungle_tree_3_variant_texta";
 const FLOWER_1_NAME = "flowers1";
 const FLOWER_2_NAME = "flowers2";
 const FLOWER_3_NAME = "flowers4";
 const BUSH_NAME = 'bush';
 const BIG_ROCK_NAME = 'big_rock_v2';
 const MED_ROCK_NAME = 'med_rock_v2';
-const GRASS_NAME = 'grass2';
+const GRASS_NAME = 'grass_1_dream';
 const ORE_NAME = 'green_biome_ore';
 
 // Texture Files
@@ -136,13 +136,13 @@ export const ORES_INFO = [
 
 export const glbUrlSpecs = {
   trees: TREES_INFO.map(t => t.getModelPath()).map(u => {
-    return `${procgenAssetsBaseUrl2}${u}`;
+    return `${procgenAssetsBaseUrl}${u}`;
   }),
   flowers: FLOWERS_INFO.map(t => t.getModelPath()).map(u => {
     return `${procgenAssetsBaseUrl}${u}`;
   }),
   bushes: BUSHES_INFO.map(t => t.getModelPath()).map(u => {
-    return `${procgenAssetsBaseUrl2}${u}`;
+    return `${procgenAssetsBaseUrl}${u}`;
   }),
   rocks: ROCKS_INFO.map(t => t.getModelPath()).map(u => {
     return `${procgenAssetsBaseUrl}${u}`;
@@ -151,7 +151,7 @@ export const glbUrlSpecs = {
     return `${procgenAssetsBaseUrl}${u}`;
   }),
   grasses: GRASSES_INFO.map(t => t.getModelPath()).map(u => {
-    return `${procgenAssetsBaseUrl2}${u}`;
+    return `${procgenAssetsBaseUrl}${u}`;
   }),
 
   ores: ORES_INFO.map(t => t.getModelPath()).map(u => {
