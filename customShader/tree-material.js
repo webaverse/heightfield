@@ -72,10 +72,10 @@ const _createTreeMaterial = (attributeTextures, maxInstancesPerGeometryPerDrawCa
         if (vColor.r > 0.1) {
           // vec3 offset = uv.x * sin(uv.y + uTime) * vec3(1., 0., 1.);
           vec4 tempPos = modelMatrix * vec4(pos, 1.0);
-          float noiseScale = 0.0005;
+          float noiseScale = 0.001;
           vec2 texUv = vec2(
-            tempPos.x * noiseScale + uTime * noiseScale,
-            tempPos.z * noiseScale + uTime * noiseScale
+            tempPos.x * noiseScale + uTime * 0.0001,
+            tempPos.z * noiseScale + uTime * 0.0001
           );
           vec4 noise = texture2D(noiseTexture, texUv);
           pos += noise.r * vec3(2., 0., 2.);

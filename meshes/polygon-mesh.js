@@ -1,6 +1,7 @@
 import metaversefile from "metaversefile";
 import * as THREE from "three";
 import {GRASS_COLORS_SHADER_CODE} from "../assets.js";
+import * as BufferGeometryUtils from "../utils/BufferGeometryUtils.js";
 import {
   GET_COLOR_PARAMETER_NAME,
   maxAnisotropy,
@@ -189,20 +190,43 @@ export class PolygonPackage {
       });
     const _getMesh = model => {
       let mesh = null;
-      const _recurse = o => {
+      let meshes = [];
+      let fakeMaterial = null;
+
+      model.traverse(o => {
         if (o.isMesh) {
           mesh = o;
-          return false;
-        } else {
-          for (let i = 0; i < o.children.length; i++) {
-            if (!_recurse(o.children[i])) {
-              return false;
-            }
-          }
-          return true;
+          meshes.push(o);
         }
-      };
-      _recurse(model);
+      });
+      
+      fakeMaterial = mesh.material;
+
+      if (meshes.length > 1) { //hack, since our tree models have 2 meshes now, need to solve this issue in blender.
+        const geometryArray = [];
+        for (const mesh of meshes) {
+          geometryArray.push( mesh.geometry.clone().applyMatrix4( mesh.matrixWorld ) );
+          
+        }
+        const mergedGeom = BufferGeometryUtils.mergeBufferGeometries(geometryArray);
+        mesh = new THREE.Mesh(mergedGeom, fakeMaterial);
+      }
+      
+      // const _recurse = o => {
+      //   if (o.isMesh) {
+      //     mesh = o;
+      //     console.log(mesh);
+      //     return false;
+      //   } else {
+      //     for (let i = 0; i < o.children.length; i++) {
+      //       if (!_recurse(o.children[i])) {
+      //         return false;
+      //       }
+      //     }
+      //     return true;
+      //   }
+      // };
+      // _recurse(model);
       return mesh;
     };
     const _generateLodMesh = (() => {
