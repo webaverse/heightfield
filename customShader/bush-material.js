@@ -9,6 +9,9 @@ const _createBushMaterial = (attributeTextures, maxInstancesPerGeometryPerDrawCa
       map: {
         value: null
       },
+      noiseTexture: {
+        value: null
+      },
       pTexture: {
         value: attributeTextures.p,
         needsUpdate: true,
@@ -38,6 +41,7 @@ const _createBushMaterial = (attributeTextures, maxInstancesPerGeometryPerDrawCa
       uniform float uTime;
       uniform sampler2D pTexture;
       uniform sampler2D qTexture;
+      uniform sampler2D noiseTexture;
   
       vec3 rotate_vertex_position(vec3 position, vec4 q) { 
         return position + 2.0 * cross(q.xyz, cross(q.xyz, position) + q.w * position);
@@ -60,6 +64,15 @@ const _createBushMaterial = (attributeTextures, maxInstancesPerGeometryPerDrawCa
         vNormal = rotate_vertex_position(vNormal, q);
         pos = rotate_vertex_position(pos, q);
         pos += p;
+
+        vec4 tempPos = modelMatrix * vec4(pos, 1.0);
+        float noiseScale = 0.00005;
+        vec2 texUv = vec2(
+          tempPos.x * noiseScale + uTime * noiseScale,
+          tempPos.z * noiseScale + uTime * noiseScale
+        );
+        vec4 noise = texture2D(noiseTexture, texUv);
+        pos += noise.r * vec3(2., 0., 2.);
   
         vec4 modelPosition = modelMatrix * vec4(pos, 1.0);
         vec4 viewPosition = viewMatrix * modelPosition;

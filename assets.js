@@ -208,6 +208,12 @@ export const liquidTextureUrlSpecs = {
   cubeMapPath: `${procgenAssetsBaseUrl}water/water-shader/textures/cubeMap/`,
 };
 
+export const polygonTextureUrlSpecs = {
+  shaderTexturePath: {
+    noiseTexture: [`${procgenAssetsBaseUrl}noise/simplex-noise.png`, true],
+  }
+};
+
 export const terrainTextureUrlSpecs = {
   simplexMap: `${procgenAssetsBaseUrl}noise/simplex-noise.png`,
   terrainEnvMap: `${procgenAssetsBaseUrl}terrain/envmaps/env.exr`,

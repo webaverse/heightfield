@@ -36,6 +36,7 @@ const {InstancedBatchedMesh, InstancedGeometryAllocator} =
 const {gltfLoader} = useLoaders();
 const lightsManager = useLightsManager();
 const {camera} = useInternals();
+const textureLoader = new THREE.TextureLoader();
 
 //
 
@@ -153,14 +154,29 @@ const _setupTextureAttributes = (
     };
   }
 };
+const _textureError = (err) => {
+  console.error('Liquid Package : Loading texture failed : ', err);
+};
+const _loadTexture = (u) =>
+  new Promise((accept, reject) => {
+    textureLoader.load(
+      u.value[0],
+      (t) => {
+        accept(t);
+      },
+      function onProgress() {},
+      _textureError
+    );
+  });
 
 export class PolygonPackage {
-  constructor(lodMeshes, textureNames) {
+  constructor(lodMeshes, textureNames, textures) {
     this.lodMeshes = lodMeshes;
     this.textureNames = textureNames;
+    this.textures = textures;
   }
 
-  static async loadUrls(urls, meshLodSpecs, physics, assetType) {
+  static async loadUrls(urls, meshLodSpecs, physics, assetType = null, paths = null) {
     const _loadModel = u =>
       new Promise((accept, reject) => {
         gltfLoader.load(
@@ -230,7 +246,32 @@ export class PolygonPackage {
       );
       return lodMeshes;
     };
-    
+
+    const textures = {};
+    if (paths) {
+      const {shaderTexturePath} = paths;
+      const mapObjectToArray = (obj) => {
+        const res = [];
+        for (const key in obj)
+          res.push({key: key, value: obj[key]});
+        return res;
+      }
+  
+      const shaderTextureArray = mapObjectToArray(shaderTexturePath);
+      const shaderTextures = await Promise.all(shaderTextureArray.map(_loadTexture))
+      .then(function(arr) {
+        const obj = {};
+        for (let i = 0; i < shaderTextureArray.length; i ++) {
+          obj[shaderTextureArray[i].key] = arr[i];
+          if (shaderTextureArray[i].value[1]) {
+            arr[i].wrapS = arr[i].wrapT = THREE.RepeatWrapping;
+          }
+        }
+        return obj;
+      });
+      textures['shaderTextures'] = shaderTextures;
+    }
+
     const attributeArray =  ["position", "normal", "uv"];
 
     const _setAdditionalAttribute = (assetType, array) => {
@@ -255,7 +296,7 @@ export class PolygonPackage {
     const {meshes: atlasMeshes, textureNames} = textureAtlasResult;
     const lodMeshes = await Promise.all(atlasMeshes.map(_generateLodMeshes));
 
-    const pkg = new PolygonPackage(lodMeshes, textureNames);
+    const pkg = new PolygonPackage(lodMeshes, textureNames, textures);
     return pkg;
   }
 }
@@ -532,9 +573,8 @@ export class PolygonMesh extends InstancedBatchedMesh {
         }
       }
     }
-    if (!this.material.uniforms.map.value) {
-      this.material.uniforms.map.value = this.material.map;
-    }
+    
+    this.material.uniforms.uTime.value = timestamp / 1000;
     this.material.uniforms.eye.value.copy(camera.position);
   }
   getAdditionalAttribute(assetType) {
@@ -549,7 +589,7 @@ export class PolygonMesh extends InstancedBatchedMesh {
   }
   setPackage(pkg) {
     // console.log('set package', pkg);
-    const {lodMeshes, textureNames} = pkg;
+    const {lodMeshes, textureNames, textures} = pkg;
     const additionalAttributeSpecs = this.getAdditionalAttribute(this.assetType);
     this.allocator.setGeometries(
       lodMeshes.map(lodMeshesArray => {
@@ -564,6 +604,10 @@ export class PolygonMesh extends InstancedBatchedMesh {
       this.material[textureName] = lodMeshes[0][0].material[textureName];
     }
 
+    if (this.material.uniforms) {
+      this.material.uniforms.map.value = this.material.map;
+      this.material.uniforms.noiseTexture.value = textures.shaderTextures.noiseTexture;
+    }
     this.visible = true;
   }
 }

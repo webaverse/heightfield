@@ -5,9 +5,11 @@ import {
   SpritesheetPackage,
 } from "../meshes/spritesheet-mesh.js";
 
+import {polygonTextureUrlSpecs} from "../assets.js";
 //
 
 //
+const SHADER_TEXTURE_PATHS = polygonTextureUrlSpecs.shaderTexturePath;
 
 const spriteLodCutoff = 8;
 const meshLodSpecs = {
@@ -76,8 +78,11 @@ export class InstancedObjectMesh extends THREE.Object3D {
   }
 
   async waitForLoad() {
+    const paths = {
+      shaderTexturePath: SHADER_TEXTURE_PATHS,
+    };
     const [polygonPackage, spritesheetPackage] = await Promise.all([
-      PolygonPackage.loadUrls(this.urls, meshLodSpecs, this.physics, this.assetType),
+      PolygonPackage.loadUrls(this.urls, meshLodSpecs, this.physics, this.assetType, paths),
       SpritesheetPackage.loadUrls(this.urls),
     ]);
     this.polygonMesh.setPackage(polygonPackage);
