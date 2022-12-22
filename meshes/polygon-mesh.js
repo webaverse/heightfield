@@ -194,7 +194,6 @@ export class PolygonPackage {
       const _recurse = o => {
         if (o.isMesh) {
           mesh = o;
-          console.log(mesh);
           return false;
         } else {
           for (let i = 0; i < o.children.length; i++) {
