@@ -154,7 +154,7 @@ const _setupTextureAttributes = (
   }
 };
 const _textureError = (err) => {
-  console.error('Liquid Package : Loading texture failed : ', err);
+  console.error('PolygonMesh Package : Loading texture failed : ', err);
 };
 const _loadTexture = (u) =>
   new Promise((accept, reject) => {
@@ -544,14 +544,12 @@ export class PolygonMesh extends InstancedBatchedMesh {
   }
 
   update(timestamp) {
-    if (lightsManager.lights.length > 0) {
-      const sunMoonRotationRadius = 500;
-      for (const light of lightsManager.lights) {
-        if (light.isDirectionalLight) {
-          this.material.uniforms.lightPos.value.copy(light.position).multiplyScalar(sunMoonRotationRadius);
-          this.material.uniforms.lightIntensity.value = light.intensity;
-          break;
-        }
+    const sunMoonRotationRadius = 500;
+    for (const light of lightsManager.lights) {
+      if (light.isDirectionalLight) {
+        this.material.uniforms.lightPos.value.copy(light.position).multiplyScalar(sunMoonRotationRadius);
+        this.material.uniforms.lightIntensity.value = light.intensity;
+        break;
       }
     }
     
