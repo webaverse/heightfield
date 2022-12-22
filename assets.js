@@ -24,9 +24,9 @@ const MODEL_FILES_EXTENSION = "glb";
 const TEXTURE_FILES_EXTENSION = "png";
 
 // Model Files
-const SHORT_TREE_NAME = "jungle_tree_2_variant_texta";
-const MEDIUM_TREE_NAME = "jungle_tree_1_variant_texta";
-const TALL_TREE_NAME = "jungle_tree_3_variant_texta";
+const SHORT_TREE_NAME = "tree_small";
+const MEDIUM_TREE_NAME = "tree_medium";
+const TALL_TREE_NAME = "tree_large";
 const FLOWER_1_NAME = "flowers1";
 const FLOWER_2_NAME = "flowers2";
 const FLOWER_3_NAME = "flowers4";
