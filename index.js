@@ -110,9 +110,9 @@ export default e => {
       barrierMesh.updateMatrixWorld(); */
 
       const TERRAIN_OBJECTS_MESHES = {
-        treeMesh: new TerrainObjectSpecs(InstancedObjectGroup, treeUrls, true, 'tree'),
+        treeMesh: new TerrainObjectSpecs(InstancedObjectGroup, treeUrls, true, 'tree', true),
         flowerMesh: new TerrainObjectSpecs(InstancedObjectGroup, flowerUrls, true, 'flower'),
-        bushMesh: new TerrainObjectSpecs(InstancedObjectMesh, bushUrls, true, 'bush'),
+        bushMesh: new TerrainObjectSpecs(InstancedObjectMesh, bushUrls, true, 'bush', true),
         rockMesh: new TerrainObjectSpecs(InstancedObjectMesh, rockUrls, true, 'rock'),
         stoneMesh: new TerrainObjectSpecs(
           InstancedObjectMesh,

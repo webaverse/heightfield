@@ -37,11 +37,12 @@ const maxDrawCallsPerGeometry = 256;
 //
 
 export class InstancedObjectMesh extends THREE.Object3D {
-  constructor({instance, physics, urls, shadow, assetType}) {
+  constructor({instance, physics, urls, shadow, assetType, hasCustomShading}) {
     super();
 
     this.urls = urls;
     this.assetType = assetType;
+    this.hasCustomShading = hasCustomShading;
 
     this.polygonMesh = new PolygonMesh({
       instance,
@@ -63,8 +64,8 @@ export class InstancedObjectMesh extends THREE.Object3D {
     this.physics = physics;
   }
 
-  update() {
-    this.spritesheetMesh.update();
+  update(timestamp) {
+    this.spritesheetMesh.update(timestamp);
   }
 
   addChunk(chunk, chunkResult) {
@@ -83,15 +84,15 @@ export class InstancedObjectMesh extends THREE.Object3D {
     };
     const [polygonPackage, spritesheetPackage] = await Promise.all([
       PolygonPackage.loadUrls(this.urls, meshLodSpecs, this.physics, this.assetType, paths),
-      SpritesheetPackage.loadUrls(this.urls),
+      SpritesheetPackage.loadUrls(this.urls, this.hasCustomShading, this.assetType, paths),
     ]);
     this.polygonMesh.setPackage(polygonPackage);
-    this.spritesheetMesh.setPackage(spritesheetPackage);
+    this.spritesheetMesh.setPackage(spritesheetPackage, this.hasCustomShading);
   }
 }
 
 export class InstancedObjectGroup extends THREE.Object3D {
-  constructor({instance, urls, physics, shadow, assetType}) {
+  constructor({instance, urls, physics, shadow, assetType, hasCustomShading}) {
     super();
 
     this.urls = urls;
@@ -104,7 +105,8 @@ export class InstancedObjectGroup extends THREE.Object3D {
         shadow,
         instance,
         physics,
-        assetType
+        assetType,
+        hasCustomShading,
       });
       this.meshes.push(mesh);
       this.add(mesh);

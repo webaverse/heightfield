@@ -13,8 +13,8 @@ import {
   TREE_ADDITIONAL_ATTRIBUTE
 } from "../constants.js";
 import {_disableOutgoingLights, _patchOnBeforeCompileFunction} from "../utils/utils.js";
-import _createTreeMaterial from '../customShader/tree-material.js';
-import _createBushMaterial from "../customShader/bush-material.js";
+import {_createTreeMaterial} from '../customShader/tree-material.js';
+import {_createBushMaterial} from "../customShader/bush-material.js";
 const {
   useCamera,
   useProcGenManager,
@@ -395,7 +395,7 @@ export class PolygonMesh extends InstancedBatchedMesh {
       #include <alphamap_fragment>
     `;
 
-    const _craeteDefaultMaterial = () => {
+    const _createDefaultMaterial = () => {
       const m = new THREE.MeshStandardMaterial({
         side: THREE.DoubleSide,
         transparent: true,
@@ -426,7 +426,7 @@ export class PolygonMesh extends InstancedBatchedMesh {
         break;
       }
       default: {
-        material = _craeteDefaultMaterial();
+        material = _createDefaultMaterial();
         break;
       }
     }
@@ -556,6 +556,7 @@ export class PolygonMesh extends InstancedBatchedMesh {
     this.material.uniforms.uTime.value = timestamp / 1000;
     this.material.uniforms.eye.value.copy(camera.position);
   }
+
   getAdditionalAttribute(assetType) {
     switch (assetType) {
       case 'tree': {
@@ -566,10 +567,12 @@ export class PolygonMesh extends InstancedBatchedMesh {
       }
     }
   }
+
   setPackage(pkg) {
     // console.log('set package', pkg);
     const {lodMeshes, textureNames, textures} = pkg;
     const additionalAttributeSpecs = this.getAdditionalAttribute(this.assetType);
+
     this.allocator.setGeometries(
       lodMeshes.map(lodMeshesArray => {
         return lodMeshesArray.map(lodMesh => {
@@ -577,6 +580,7 @@ export class PolygonMesh extends InstancedBatchedMesh {
         });
       }), additionalAttributeSpecs
     );
+
     this.geometry = this.allocator.geometry;
     
     for (const textureName of textureNames) {
@@ -587,6 +591,7 @@ export class PolygonMesh extends InstancedBatchedMesh {
       this.material.uniforms.map.value = this.material.map;
       this.material.uniforms.noiseTexture.value = textures.shaderTextures.noiseTexture;
     }
+
     this.visible = true;
   }
 }
@@ -786,16 +791,20 @@ export class GrassPolygonMesh extends InstancedBatchedMesh {
     const customColorFragment = /* glsl */ `
       #include <alphamap_fragment>
 
-      float grassAlpha = diffuseColor.a * vGrassHeight;
+      float grassAlpha = diffuseColor.a/*  * vGrassHeight */;
+
+      if(grassAlpha < 0.5) {
+        discard;
+      }
+
       vec3 grassColor = blendGrassColors(vMaterials, vMaterialsWeights);
 
-      grassColor.r += vGrassHeight / 1.5;
-      grassColor.g += vGrassHeight / 1.5;
-      grassColor.b += vGrassHeight / 4.0;
+      grassColor.r += vGrassHeight / 6.0;
+      grassColor.g += vGrassHeight / 5.0;
+      grassColor.b += vGrassHeight / 6.0;
 
       grassColor *= vColor;
 
-      grassColor = clamp(grassColor, 0.0, 0.85);
       diffuseColor = vec4(grassColor, grassAlpha);
     `;
 
@@ -804,8 +813,7 @@ export class GrassPolygonMesh extends InstancedBatchedMesh {
       metalness: 0.8,
       roughness: 0.1,
       side: THREE.DoubleSide,
-      transparent: true,
-      depthWrite: false,
+      depthWrite: true,
       // alphaTest: 0.01,
       onBeforeCompile: shader => {
         _storeShader(material, shader);

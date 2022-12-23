@@ -8,8 +8,8 @@ export const MAX_WORLD_HEIGHT = 2048;
 export const GRASS_COLOR_NAME = 'grassColor';
 
 // Colors
-export const GRASS_COLOR_ABOVE_GRASS = '#00f070';
-export const GRASS_COLOR_ABOVE_DIRT = '#99ff00';
+export const GRASS_COLOR_ABOVE_GRASS = '#074c06';
+export const GRASS_COLOR_ABOVE_DIRT = '#294003';
 
 // Materials
 export const NO_LIGHT_MATERIAL_SHADOW_INTENSITY = 0.5;

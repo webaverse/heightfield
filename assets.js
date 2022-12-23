@@ -24,9 +24,9 @@ const MODEL_FILES_EXTENSION = "glb";
 const TEXTURE_FILES_EXTENSION = "png";
 
 // Model Files
-const SHORT_TREE_NAME = "jungle_tree_2_variant_texta";
-const MEDIUM_TREE_NAME = "jungle_tree_1_variant_texta";
-const TALL_TREE_NAME = "jungle_tree_3_variant_texta";
+const SHORT_TREE_NAME = "tree_small";
+const MEDIUM_TREE_NAME = "tree_medium";
+const TALL_TREE_NAME = "tree_large";
 const FLOWER_1_NAME = "flowers1";
 const FLOWER_2_NAME = "flowers2";
 const FLOWER_3_NAME = "flowers4";
@@ -39,8 +39,8 @@ const ORE_NAME = 'green_biome_ore';
 // Texture Files
 const GRASS_MATERIAL_NAME = 'stylized_grass';
 const DIRT_MATERIAL_NAME = 'dirt_ground';
-const ROCK_MATERIAL_NAME = 'stylized_stone';
-const STONE_MATERIAL_NAME = 'stylized_snow';
+const CLIFF_MATERIAL_NAME = 'stylized_stone';
+const SNOW_MATERIAL_NAME = 'stylized_snow';
 
 //
 
@@ -95,15 +95,15 @@ export const MATERIALS_INFO = [
     GRASS_COLOR_ABOVE_DIRT,
   ),
   new MaterialInfo(
-    ROCK_MATERIAL_NAME,
+    CLIFF_MATERIAL_NAME,
     TERRAIN_TEXTURES_DIRECTORY_NAME,
-    6,
+    8,
     GRASS_COLOR_ABOVE_DIRT,
   ),
   new MaterialInfo(
-    STONE_MATERIAL_NAME,
+    SNOW_MATERIAL_NAME,
     TERRAIN_TEXTURES_DIRECTORY_NAME,
-    6,
+    1,
     GRASS_COLOR_ABOVE_DIRT,
   ),
 ];

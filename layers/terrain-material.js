@@ -96,6 +96,35 @@ const _createTerrainMaterial = () => {
         const float TEXTURE_PER_ROW = float(${texturePerRow});
         const float TEXTURE_SIZE = 1.0 / TEXTURE_PER_ROW;
 
+        vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
+
+        float snoise(vec2 v){
+          const vec4 C = vec4(0.211324865405187, 0.366025403784439,
+                  -0.577350269189626, 0.024390243902439);
+          vec2 i  = floor(v + dot(v, C.yy) );
+          vec2 x0 = v -   i + dot(i, C.xx);
+          vec2 i1;
+          i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+          vec4 x12 = x0.xyxy + C.xxzz;
+          x12.xy -= i1;
+          i = mod(i, 289.0);
+          vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))
+          + i.x + vec3(0.0, i1.x, 1.0 ));
+          vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy),
+            dot(x12.zw,x12.zw)), 0.0);
+          m = m*m ;
+          m = m*m ;
+          vec3 x = 2.0 * fract(p * C.www) - 1.0;
+          vec3 h = abs(x) - 0.5;
+          vec3 ox = floor(x + 0.5);
+          vec3 a0 = x - ox;
+          m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
+          vec3 g;
+          g.x  = a0.x  * x0.x  + h.x  * x0.y;
+          g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+          return 130.0 * dot(m, g);
+        }
+
         vec4 blendSamples(vec4 samples[4], vec4 weights) {
           float weightSum = weights.x + weights.y + weights.z + weights.w;
           return (samples[0] * weights.x + samples[1] * weights.y + samples[2] * weights.z + samples[3] * weights.w) / weightSum;
@@ -161,9 +190,14 @@ const _createTerrainMaterial = () => {
           vec4 cola = subTexture2D(textureSample, uv + offa, textureOffset, duvdx, duvdy);
           vec4 colb = subTexture2D(textureSample, uv + offb, textureOffset, duvdx, duvdy);
 
+          vec3 multiplier = vec3(1.f);
+          if(textureIndex == 0 || textureIndex == 1){
+            float simplexNoise = snoise(vPosition.xz / 15.f);
+            multiplier = vec3(0.98f + simplexNoise / 5.5f, 1.0f + simplexNoise / 4.f, 1.f);
+          }
 
           // interpolate between the two virtual patterns
-          return mix(cola, colb, smoothstep(0.2,0.8,f-0.1*sum(cola.xyz-colb.xyz)));
+          return mix(cola, colb, smoothstep(0.2,0.8,f-0.1*sum(cola.xyz-colb.xyz))) * vec4(multiplier, 1.f);
         }
 
         vec4 blendMaterials(sampler2D inputTextures, vec2 uv) {
@@ -187,10 +221,11 @@ const _createTerrainMaterial = () => {
 
       const mapFragment = /* glsl */ `
         #include <map_fragment>
- 
+
         vec4 diffMapColor = mapTextures(vPosition, vObjectNormal, uDiffMap);
         diffMapColor.rgb = ACESFilmicToneMapping(diffMapColor.rgb);
         diffuseColor *= diffMapColor;
+
       `;
 
       const normalFragmentMaps = /* glsl */ `

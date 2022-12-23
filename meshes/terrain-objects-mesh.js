@@ -1,11 +1,12 @@
 import * as THREE from "three";
 
 export class TerrainObjectSpecs {
-  constructor(constructor, urls, shadow, assetType = null) {
+  constructor(constructor, urls, shadow, assetType = null, hasCustomShading = false) {
     this.construct = constructor;
     this.urls = urls;
     this.shadow = shadow;
     this.assetType = assetType;
+    this.hasCustomShading = hasCustomShading;
   }
 }
 export class TerrainObjectsMesh extends THREE.Object3D {
@@ -19,7 +20,8 @@ export class TerrainObjectsMesh extends THREE.Object3D {
         physics,
         urls: meshSpecs.urls,
         shadow: meshSpecs.shadow,
-        assetType: meshSpecs.assetType
+        assetType: meshSpecs.assetType,
+        hasCustomShading: meshSpecs.hasCustomShading,
       });
       this.add(mesh);
       mesh.updateMatrixWorld();
