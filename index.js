@@ -15,6 +15,8 @@ import {
 } from "./meshes/terrain-objects-mesh.js";
 import {_addNoLightingShaderChunk} from "./utils/utils.js";
 
+import { EnvironmentalVfx } from "./environmental-vfx/index.js";
+
 const {
   useApp,
   useFrame,
@@ -133,6 +135,8 @@ export default e => {
       app.add(terrainObjects);
       terrainObjects.updateMatrixWorld();
 
+      const environmentalVfx = new EnvironmentalVfx(app);
+      
       const liquidMesh = new LiquidMesh({
         instance,
         gpuTaskManager,
@@ -141,6 +145,7 @@ export default e => {
       liquidMesh.frustumCulled = false;
       app.add(liquidMesh);
       liquidMesh.depthInvisibleList.push(terrainObjects);
+      liquidMesh.depthInvisibleList.push(environmentalVfx.environmentalObjects);
       liquidMesh.updateMatrixWorld();
       
       // genration events handling
@@ -291,6 +296,7 @@ export default e => {
           );
         };
         _updateLiquidMesh();
+        environmentalVfx.update(timestamp)
 
         gpuTaskManager.update();
       };
