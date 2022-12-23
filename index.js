@@ -164,7 +164,7 @@ export default e => {
           // console.log('got heightfield', heightfield);
 
           // heightfield
-          terrainMesh.addChunk(chunk, heightfield);
+          terrainMesh.addChunk(chunk, heightfield, lodTracker);
           liquidMesh.addChunk(chunk, heightfield);
           // barrierMesh.addChunk(chunk, heightfield);
 
