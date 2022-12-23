@@ -47,8 +47,6 @@ const localQuaternion = new THREE.Quaternion();
 const localMatrix = new THREE.Matrix4();
 const localMatrix2 = new THREE.Matrix4();
 
-// main
-
 export default e => {
   const app = useApp();
   const camera = useCamera();
@@ -65,13 +63,16 @@ export default e => {
     (async () => {
       const instance = procGenManager.getInstance("lol");
 
-      // lod tracker
-      const lodTracker = await instance.createLodChunkTracker({
-        minLod: 1,
-        maxLod: 7,
-        lod1Range: 2,
-        // debug: true,
-      });
+    const MIN_LOD = 1;
+    const MAX_LOD = 7;
+    const LOD_1_RANGE = 2;
+
+    const lodTracker = await instance.createLodChunkTracker({
+      minLod: MIN_LOD,
+      maxLod: MAX_LOD,
+      lod1Range: LOD_1_RANGE,
+      // debug: true,
+    });
       // app.add(lodTracker.debugMesh);
       // lodTracker.debugMesh.position.y = 0.1;
       // lodTracker.debugMesh.updateMatrixWorld();
@@ -221,6 +222,7 @@ export default e => {
           });
         } catch (err) {
           if (err.isAbortError) {
+            lodTracker.cleanupReplacedChunks(chunk);
             // console.log('got chunk add abort', chunk);
           } else {
             throw err;
