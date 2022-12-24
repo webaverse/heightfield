@@ -48,6 +48,9 @@ export const getFireflies = (particleCount, player, camera) => {
       },
       sun: {
         value: 1
+      },
+      eye: {
+        value: new THREE.Vector3(),
       }
     },
     vertexShader: `
@@ -57,12 +60,14 @@ export const getFireflies = (particleCount, player, camera) => {
       uniform float size;
       uniform vec4 cameraBillboardQuaternion;
       
+      
       attribute float scales;
       attribute float opacity;
       
       attribute vec3 positions;
       
       varying vec2 vUv;
+      varying vec3 vWorldPosition;
       varying float vOpacity;
       
       
@@ -79,6 +84,7 @@ export const getFireflies = (particleCount, player, camera) => {
         pos *= scales;
         pos += positions;
         vec4 modelPosition = modelMatrix * vec4(pos, 1.0);
+        vWorldPosition = modelPosition.xyz;
         vec4 viewPosition = viewMatrix * modelPosition;
         vec4 projectionPosition = projectionMatrix * viewPosition;
         gl_Position = projectionPosition;
@@ -90,10 +96,11 @@ export const getFireflies = (particleCount, player, camera) => {
       uniform float uTime;
       uniform float sun;
       uniform sampler2D glowSpheretexture;
+      uniform vec3 eye;
 
       varying vec2 vUv;
       varying float vOpacity;
-      
+      varying vec3 vWorldPosition;
 
       #define PI 3.1415926
 
@@ -101,13 +108,16 @@ export const getFireflies = (particleCount, player, camera) => {
         
         vec4 glowSphere = texture2D(glowSpheretexture, vUv);    
         gl_FragColor = glowSphere;
-        
+
+        float vtoP = distance(vWorldPosition, eye);
+        float distanceLerp = clamp(10. - vtoP, 0., 10.);
+        gl_FragColor.rgb = smoothstep(vec3(0.), vec3(distanceLerp), gl_FragColor.rgb);
         if (sun < 0.5) {
           gl_FragColor.rgb *= vec3(0.970, 0.748, 0.0194);
           gl_FragColor.a *= vOpacity;
         }
         else {
-          gl_FragColor.rgb = smoothstep(vec3(0.), vec3(2.), gl_FragColor.rgb);
+          gl_FragColor.rgb = smoothstep(vec3(0.), vec3(3.5), gl_FragColor.rgb);
           gl_FragColor.a *= 0.6;
         }
         
@@ -173,6 +183,7 @@ export const getFireflies = (particleCount, player, camera) => {
     }
     material.uniforms.uTime.value = timestamp / 1000;
     material.uniforms.cameraBillboardQuaternion.value.copy(camera.quaternion);   
+    material.uniforms.eye.value.copy(camera.position);   
       
   }
   return fireFlies;
