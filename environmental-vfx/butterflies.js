@@ -51,7 +51,7 @@ export const getButterflies = (particleCount, player) => {
 
     const group2 = new THREE.Group();
     const group = new THREE.Group();
-    const butterflySize = 0.08;
+    const butterflySize = 0.05;
     group.add(body);
     group.add(lwing);
     group.add(rwing);
