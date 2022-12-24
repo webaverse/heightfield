@@ -33,7 +33,7 @@ export const getFireflies = (particleCount, player, camera) => {
   attributeSpecs.push({name: 'scales', itemSize: 1});
   attributeSpecs.push({name: 'opacity', itemSize: 1});
   
-  const geometry2 = new THREE.PlaneBufferGeometry(0.17, 0.17);
+  const geometry2 = new THREE.PlaneBufferGeometry(0.15, 0.15);
   const geometry = _getGeometry(geometry2, attributeSpecs, particleCount);
       
 
