@@ -135,7 +135,7 @@ export default e => {
       app.add(terrainObjects);
       terrainObjects.updateMatrixWorld();
 
-      const environmentalVfx = new EnvironmentalVfx(app);
+      
       
       const liquidMesh = new LiquidMesh({
         instance,
@@ -145,8 +145,9 @@ export default e => {
       liquidMesh.frustumCulled = false;
       app.add(liquidMesh);
       liquidMesh.depthInvisibleList.push(terrainObjects);
-      liquidMesh.depthInvisibleList.push(environmentalVfx.environmentalObjects);
       liquidMesh.updateMatrixWorld();
+
+      const environmentalVfx = new EnvironmentalVfx(app);
       
       // genration events handling
       lodTracker.onChunkAdd(async chunk => {
@@ -296,7 +297,7 @@ export default e => {
           );
         };
         _updateLiquidMesh();
-        environmentalVfx.update(timestamp)
+        environmentalVfx.update(timestamp);
 
         gpuTaskManager.update();
       };
