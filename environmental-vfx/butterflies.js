@@ -68,7 +68,7 @@ export const getButterflies = (particleCount, player) => {
       player.position.y + Math.random() * 2,
       player.position.z + (Math.random() - 0.5) * maxButterflyDistance,
     )
-    butterfly.attraction = Math.random();
+    butterfly.attraction = 0.01 + Math.random() * 0.09;
     butterfly.velocity.set(rnd(1, true), rnd(1, true), rnd(1, true));
   }
 
@@ -111,7 +111,6 @@ export const getButterflies = (particleCount, player) => {
       localVector.set(butterfly.destination.x, butterfly.destination.y, butterfly.destination.z);
       const dv = localVector.sub(butterfly.position).normalize();
       butterfly.velocity.x += butterfly.attraction * dv.x;
-      // if (count % 10 === 0)
       butterfly.velocity.y += butterfly.attraction * dv.y;
       butterfly.velocity.z += butterfly.attraction * dv.z;
 
@@ -120,7 +119,7 @@ export const getButterflies = (particleCount, player) => {
       butterfly.velocity.z = limit(butterfly.velocity.z, -0.025, 0.025);
 
       const v2 = butterfly.velocity;
-      const wavingSpeed = 0.03 + butterfly.attraction * 0.05;
+      const wavingSpeed = 0.03 + butterfly.attraction * 0.1;
       butterfly.children[0].children[1].rotation.y = Math.cos(timestamp * wavingSpeed);
       butterfly.children[0].children[2].rotation.y = -Math.cos(timestamp * wavingSpeed);
 
