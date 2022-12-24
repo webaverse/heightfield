@@ -19,7 +19,7 @@ export class EnvironmentalVfx {
     this.app.add(this.butterflies);
 
     
-    this.fireflies = getFireflies(100, this.player,  this.camera);
+    this.fireflies = getFireflies(50, this.player,  this.camera);
     this.app.add(this.fireflies);
 
 

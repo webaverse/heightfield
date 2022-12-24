@@ -132,7 +132,7 @@ export const getFireflies = (particleCount, player, camera) => {
     info.flashSpeed[i] = Math.random();
   }
 
-  const maxFireflyDistance = 100;
+  const maxFireflyDistance = 50;
   let azimuth = 0.4;
   fireFlies.update = (timestamp) => {
     azimuth = (0.05 + (Date.now() / 5000) * 0.1) % 1;
@@ -161,7 +161,7 @@ export const getFireflies = (particleCount, player, camera) => {
         positionsAttribute.getZ(i) + info.velocity[i].z
       )
       scalesAttribute.setX(i, scalesAttribute.getX(i) - 0.003);
-      opacityAttribute.setX(i, Math.abs(Math.cos(timestamp * 0.005 * info.flashSpeed[i])));
+      opacityAttribute.setX(i, Math.abs(Math.cos(timestamp * 0.0025 * info.flashSpeed[i])));
     }
     scalesAttribute.needsUpdate = true;
     positionsAttribute.needsUpdate = true;
