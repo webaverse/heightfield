@@ -58,6 +58,19 @@ export default e => {
   // locals
 
   let frameCb = null;
+  let envVFX = false;
+  let environmentalVfx = null;
+  for (const component of app.components) {
+    switch (component.key) {
+      case 'envVFX': {
+        envVFX = component.value.enable;
+        break;
+      }
+      default: {
+        break;
+      }
+    }
+  }
 
   // initialization
 
@@ -147,7 +160,10 @@ export default e => {
       liquidMesh.depthInvisibleList.push(terrainObjects);
       liquidMesh.updateMatrixWorld();
 
-      const environmentalVfx = new EnvironmentalVfx(app);
+      if (envVFX) {
+        environmentalVfx = new EnvironmentalVfx(app);
+      }
+      
       
       // genration events handling
       lodTracker.onChunkAdd(async chunk => {
@@ -297,7 +313,7 @@ export default e => {
           );
         };
         _updateLiquidMesh();
-        environmentalVfx.update(timestamp);
+        environmentalVfx && environmentalVfx.update(timestamp);
 
         gpuTaskManager.update();
       };
