@@ -118,7 +118,7 @@ const divingLowerSplashFragment = `\
     );
     float colorFilter = 0.1;
     if (splash.r > colorFilter) {
-      gl_FragColor = vec4(0.9, 0.9, 0.9, 1.0);
+      gl_FragColor = vec4(0.9, 0.9, 0.9, 0.9);
     }
     if (vPos.y < waterSurfacePos) {
       gl_FragColor.a = 0.;
@@ -458,143 +458,7 @@ const movingRippleFragment = `\
     ${THREE.ShaderChunk.logdepthbuf_fragment}
   }
 `
-const freestyleSplashVertex = `\     
-  ${THREE.ShaderChunk.common}
-  ${THREE.ShaderChunk.logdepthbuf_pars_vertex}
-  attribute vec3 scales;
-  attribute float rotation;
-  attribute vec3 positions;
-  attribute float broken;
-  varying float vBroken;
-  varying vec2 vUv;
-  varying vec3 vPos;
-  void main() {  
-    mat3 rotY = mat3(
-      cos(rotation), 0.0, -sin(rotation), 
-      0.0, 1.0, 0.0, 
-      sin(rotation), 0.0, cos(rotation)
-    );
-    vBroken = broken;
-    vUv = uv;
-    vec3 pos = position;
-    pos *= 0.006;
-    pos *= scales;
-    pos *= rotY;
-    pos += positions;
-    vec4 modelPosition = modelMatrix * vec4(pos, 1.0);
-    vec4 viewPosition = viewMatrix * modelPosition;
-    vec4 projectionPosition = projectionMatrix * viewPosition;
-    vPos = modelPosition.xyz;
-    gl_Position = projectionPosition;
-    ${THREE.ShaderChunk.logdepthbuf_vertex}
-  }
-`
-const freestyleSplashFragment = `\
-  ${THREE.ShaderChunk.logdepthbuf_pars_fragment}
-  uniform float waterSurfacePos;
-  uniform sampler2D circleTexture;
-  uniform sampler2D noiseMap;
-  varying vec2 vUv;
-  varying vec3 vPos;
-  varying float vBroken;
-  void main() {
-    vec4 motion = texture2D(
-      circleTexture,
-      vUv
-    );
-    gl_FragColor = motion;
-    if (gl_FragColor.r > 0.01) {
-      gl_FragColor.rgb *= 1.5;
-    }
-    float broken = abs(sin(1.0 - vBroken)) - texture2D(noiseMap, vUv).g;
-    if (broken < 0.0001) discard;
-    if (vPos.y < waterSurfacePos) {
-      discard;
-    }
-    ${THREE.ShaderChunk.logdepthbuf_fragment}
-  }
-`
-const bodyDropVertex = `\       
-  ${THREE.ShaderChunk.common}
-  ${THREE.ShaderChunk.logdepthbuf_pars_vertex}
-  uniform vec4 cameraBillboardQuaternion;
-  varying vec2 vUv;
-  varying vec3 vPos;
-  varying float vBroken;
-  varying float vOpacity;
-  varying float vId;
-  
-  attribute float broken;
-  attribute float id;
-  attribute float opacity;
-  attribute vec3 positions;
-  attribute vec3 scales;
-  
-  vec3 rotateVecQuat(vec3 position, vec4 q) {
-    vec3 v = position.xyz;
-    return v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v);
-  }
-  void main() {
-    vUv = uv;
-    vBroken = broken;
-    vOpacity = opacity;
-    vId = id;
-    
-    vec3 pos = position;
-    pos = rotateVecQuat(pos, cameraBillboardQuaternion);
-    pos *= scales;
-    pos += positions;
-    vec4 modelPosition = modelMatrix * vec4(pos, 1.0);
-    vec4 viewPosition = viewMatrix * modelPosition;
-    vec4 projectionPosition = projectionMatrix * viewPosition;
-    vPos = modelPosition.xyz;
-    gl_Position = projectionPosition;
-    ${THREE.ShaderChunk.logdepthbuf_vertex}
-  }
-`
-const bodyDropFragment = `\
-  ${THREE.ShaderChunk.logdepthbuf_pars_fragment}
-  uniform sampler2D splashTexture;
-  uniform sampler2D noiseMap;
-  uniform sampler2D dropTexture;
-  uniform float dropCount;
-  
-  varying vec2 vUv;
-  varying vec3 vPos;
-  varying float vOpacity;
-  varying float vId;
-  
-  varying float vBroken;
-  void main() {
-    if (vId < dropCount - 0.5) {
-      vec4 drop = texture2D(
-        dropTexture,
-        vUv
-      );
-      if (drop.b < 0.5) {
-        discard;
-      }
-      gl_FragColor = vec4(drop.rgb, vOpacity);
-    }
-    else {
-      vec4 splash = texture2D(
-        splashTexture,
-        vUv
-      );
-      if (splash.r > 0.2) {
-        gl_FragColor = vec4(0.8, 0.8, 0.8, 1.0);
-      }
-      else {
-        discard;
-      }
-      
-      float broken = abs(sin(1.0 - vBroken)) - texture2D(noiseMap, vUv).g;
-      if (broken < 0.0001) discard;
-    }
-    
-    ${THREE.ShaderChunk.logdepthbuf_fragment}
-  }
-`
+
 export {
   divingRippleVertex, divingRippleFragment,
   divingLowerSplashVertex, divingLowerSplashFragment,
@@ -602,6 +466,4 @@ export {
   bubbleVertex, bubbleFragment,
   dropletRippleVertex, dropletRippleFragment,
   movingRippleVertex, movingRippleFragment,
-  freestyleSplashVertex, freestyleSplashFragment,
-  bodyDropVertex, bodyDropFragment,
 };

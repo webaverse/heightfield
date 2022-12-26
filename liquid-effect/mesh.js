@@ -6,8 +6,6 @@ import {
   bubbleVertex, bubbleFragment,
   dropletRippleVertex, dropletRippleFragment,
   movingRippleVertex, movingRippleFragment,
-  freestyleSplashVertex, freestyleSplashFragment,
-  bodyDropVertex, bodyDropFragment,
 } from './shader.js';
 
 const _getGeometry = (geometry, attributeSpecs, particleCount) => {
@@ -309,107 +307,6 @@ const getMovingRipple = () => {
   idAttribute.needsUpdate = true;
   return movingRipple;
 }
-const getMovingSplash = () => {
-  const particleCount = 60;
-  const attributeSpecs = [];
-  attributeSpecs.push({name: 'scales', itemSize: 1});
-  attributeSpecs.push({name: 'broken', itemSize: 1});
-  attributeSpecs.push({name: 'textureRotation', itemSize: 1});
-  const geometry2 = new THREE.PlaneGeometry(0.18, 0.18);
-  const geometry = _getGeometry(geometry2, attributeSpecs, particleCount);
-  const group = new THREE.Group();
-
-  const material = new THREE.ShaderMaterial({
-    uniforms: {
-      cameraBillboardQuaternion: {
-        value: new THREE.Quaternion(),
-      },
-      splashTexture: {
-        value: null,
-      },
-      waterSurfacePos: {
-        value: 0,
-      },
-      noiseMap: {
-        value: null
-      },
-      noiseScale: {
-        value: 0.9
-      },
-    },
-    vertexShader: divingLowerSplashVertex,
-    fragmentShader: divingLowerSplashFragment,
-    side: THREE.DoubleSide,
-    transparent: true,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
-  });
-  const movingSplash = new THREE.InstancedMesh(geometry, material, particleCount);
-  group.add(movingSplash);
-  movingSplash.info = {
-    particleCount: particleCount,
-    velocity: [particleCount],
-    acc: [particleCount],
-    brokenVelocity: [particleCount]
-  }
-  const brokenAttribute = movingSplash.geometry.getAttribute('broken');
-  for (let i = 0; i < particleCount; i++) {
-    brokenAttribute.setX(i, 1);
-    movingSplash.info.velocity[i] = new THREE.Vector3();
-    movingSplash.info.acc[i] = new THREE.Vector3();
-  }
-  brokenAttribute.needsUpdate = true;
-  return group;
-}
-const getFreestyleSplash = (domeModel) => {
-  const group = new THREE.Group();
-  const freeStyleGroup = new THREE.Group();
-  const particleCount = 6;
-  domeModel.scene.traverse(o => {
-    if (o.isMesh) {
-      const splashGeometry = o.geometry;
-      const attributeSpecs = [];
-      attributeSpecs.push({name: 'broken', itemSize: 1});
-      attributeSpecs.push({name: 'scales', itemSize: 3});
-      attributeSpecs.push({name: 'rotation', itemSize: 1});
-      const geometry = _getGeometry(splashGeometry, attributeSpecs, particleCount);
-
-      const material= new THREE.ShaderMaterial({
-        uniforms: {
-          waterSurfacePos: {
-            value: 0
-          },
-          circleTexture: {
-            value: null
-          },
-          noiseMap: {
-            value: null
-          },
-        },
-        vertexShader: freestyleSplashVertex,
-        fragmentShader: freestyleSplashFragment,
-        side: THREE.DoubleSide,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-        transparent: true,
-      });
-
-      const splash = new THREE.InstancedMesh(geometry, material, particleCount);
-      splash.info = {
-        particleCount: particleCount,
-        initialScale: [particleCount],
-      }
-      for (let i = 0; i < particleCount; i ++) {
-        splash.info.initialScale[i] = new THREE.Vector3();
-      }
-      group.add(splash);
-      group.rotation.x = -Math.PI / 1.5;
-      freeStyleGroup.add(group);
-    }
-  });
-  
-  return freeStyleGroup;
-}
 const getBubble = () => {
   const particleCount = 40;
   const attributeSpecs = [];
@@ -449,54 +346,7 @@ const getBubble = () => {
   }
   return bubble;
 }
-const getBodyDrop = () => {
-  const bodyDropGroup = new THREE.Group();
-  const particleCount = 6;
-  const attributeSpecs = [];
-  attributeSpecs.push({name: 'broken', itemSize: 1});
-  attributeSpecs.push({name: 'id', itemSize: 1});
-  attributeSpecs.push({name: 'scales', itemSize: 3});
-  attributeSpecs.push({name: 'opacity', itemSize: 1});
-  const geometry2 = new THREE.PlaneGeometry(0.03, 0.03);
-  const geometry = _getGeometry(geometry2, attributeSpecs, particleCount);
-  const material = new THREE.ShaderMaterial({
-    uniforms: {
-      cameraBillboardQuaternion: {
-        value: new THREE.Quaternion(),
-      },
-      splashTexture: {
-        value: null,
-      },
-      noiseMap:{
-        value: null
-      },
-      dropTexture: {
-        value: null
-      },
-      dropCount: {
-        value: particleCount / 2
-      }
-    },
-    vertexShader: bodyDropVertex,
-    fragmentShader: bodyDropFragment,
-    side: THREE.DoubleSide,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
-    transparent: true,
-  });
-  const bodyDrop = new THREE.InstancedMesh(geometry, material, particleCount);
-  bodyDrop.info = {
-    particleCount: particleCount,
-    dropCount: particleCount / 2,
-  }
-  const idAttribute = bodyDrop.geometry.getAttribute('id');
-  for (let i = 0; i < particleCount; i++) {
-    idAttribute.setX(i, i);
-  }
-  idAttribute.needsUpdate = true;
-  bodyDropGroup.add(bodyDrop);
-  return bodyDropGroup;
-}
+
 
 export {
   getDivingRipple,
@@ -504,8 +354,5 @@ export {
   getDivingHigherSplash,
   getDroplet,
   getMovingRipple,
-  getMovingSplash,
-  getFreestyleSplash,
   getBubble,
-  getBodyDrop,
 };

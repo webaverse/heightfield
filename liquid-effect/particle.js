@@ -6,10 +6,7 @@ import {
   getDivingHigherSplash,
   getDroplet,
   getMovingRipple,
-  getMovingSplash,
-  getFreestyleSplash,
   getBubble,
-  getBodyDrop,
 } from './mesh.js';
 
 const {useSound, useInternals} = metaversefile;
@@ -19,6 +16,8 @@ const soundFiles = sounds.getSoundFiles();
 // constants
 const localVector = new THREE.Vector3();
 const localVector2 = new THREE.Vector3();
+const localVector3 = new THREE.Vector3();
+
 const regex = new RegExp('^water/jump_water[0-9]*.wav$');
 const divingCandidateAudios = soundFiles.water.filter((f) => regex.test(f.name));
 const MAX_DISTORTION_RANGE = 1;
@@ -55,6 +54,10 @@ class WaterParticleEffect {
     this.movingRipple = null;
     this.lastStaticTime = 0;
     this.initMovingRipple();
+
+    this.bubble = null;
+    this.initBubble();
+
   }
 
   playDivingSfx() {
@@ -199,8 +202,8 @@ class WaterParticleEffect {
       
       // if speed > 0.3, play broken ripple
       if (this.currentSpeed > 0.3) {
-        brokenAttribute.setX(this.movingRipple.info.currentBrokenRipple, 0.1 + 0.2 * Math.random());
-        scalesAttribute.setX(this.movingRipple.info.currentBrokenRipple, 1.1 + Math.random() * 0.5);
+        brokenAttribute.setX(this.movingRipple.info.currentBrokenRipple, 0.1 + 0.3 * Math.random());
+        scalesAttribute.setX(this.movingRipple.info.currentBrokenRipple, 1.1 + Math.random() * 1.5);
         positionsAttribute.setXYZ(
           this.movingRipple.info.currentBrokenRipple,
           this.player.position.x - 0.25 * this.playerDir.x + (Math.random() - 0.5) * 0.25, 
@@ -253,6 +256,46 @@ class WaterParticleEffect {
     scalesAttribute.needsUpdate = true;
   }
 
+  emitBubble(timestamp) {
+    const positionsAttribute = this.bubble.geometry.getAttribute('positions');
+    const scalesAttribute = this.bubble.geometry.getAttribute('scales');
+    if (timestamp - this.bubble.info.lastEmmitTime > 100) {
+      const maxEmit = (Math.floor(this.currentSpeed * 10 + 1) * 5);
+      for (let i = 0; i < maxEmit; i ++) {
+        localVector3.set(this.player.position.x, this.player.position.y, this.player.position.z);
+        if (scalesAttribute.getX(i) <= 0) {
+          if (this.currentSpeed > 0.1) {
+            localVector3.x += (Math.random() - 0.5) * 0.5;
+            localVector3.y += -0.2 - (Math.random()) * 0.5;
+            localVector3.z += (Math.random() - 0.5) * 0.5;
+            this.bubble.info.velocity[i].x = -this.playerDir.x * 0.005;
+            this.bubble.info.velocity[i].y = 0.0025 + Math.random() * 0.0025;
+            this.bubble.info.velocity[i].z = -this.playerDir.z * 0.005;
+          }
+          else { // when stop moving
+            localVector3.x += -this.playerDir.x * 0.25 + (Math.random() - 0.5) * 0.5;
+            localVector3.z += -this.playerDir.z * 0.25 + (Math.random() - 0.5) * 0.5;
+            const avatarHeight = this.player.avatar.height;
+            localVector3.y -= avatarHeight * 0.6 + (Math.random()) * 0.2;
+            this.bubble.info.velocity[i].x = 0;
+            this.bubble.info.velocity[i].y = 0.0025 + Math.random() * 0.0025;
+            this.bubble.info.velocity[i].z = 0;
+          }
+          if (localVector3.y > this.waterSurfaceHeight) // avoid bubble fly above water
+            localVector3.y = this.waterSurfaceHeight;
+          positionsAttribute.setXYZ(i, localVector3.x, localVector3.y, localVector3.z);
+          
+          this.bubble.info.offset[i] = Math.floor(Math.random() * 29);
+          this.bubble.info.maxLife[i] = (50 + Math.random() * 50);
+          this.bubble.info.livingTime[i] = 0;
+          scalesAttribute.setX(i, Math.random());
+        }
+      }
+    }
+    positionsAttribute.needsUpdate = true;
+    scalesAttribute.needsUpdate = true;
+  }
+
   update(timestamp) {
     if (!this.player && !this.player.avatar) {
       return;
@@ -295,22 +338,10 @@ class WaterParticleEffect {
     if (hasSwim) {
       if (swimmingAboveSurface) {
         this.movingRipple && this.emitMovingRipple(timestamp);
-        // this.movingSplash && this.handleSwimmingSplash(timestamp, swimAction.animationType);
       }
-      // this.bubble && this.playBubble(timestamp);
+      this.bubble && this.emitBubble(timestamp);
     }
-    else {
-      // const walkingInDeepWater = this.waterSurfaceHeight > this.player.position.y - this.player.avatar.height * 0.5;
-      // if (this.contactWater) {
-      //   if (walkingInDeepWater) {
-      //     this.movingRipple && this.emitMovingRipple(timestamp);
-      //   }
-      //   else {
-      //     this.handleWalkingSplash();
-      //   }
-      // }
-    }
-
+    
     //#################################### handle stop moving in water ####################################
     this.lastStaticTime = (this.currentSpeed > 0.1 || this.fallingSpeed > 1) ? timestamp : this.lastStaticTime;
     if (timestamp - this.lastStaticTime > 1500 && swimmingAboveSurface) {
@@ -326,7 +357,8 @@ class WaterParticleEffect {
     this.divingHigherSplash.update();
     this.dropletgroup.update(timestamp);
     this.movingRipple.update(timestamp);
-
+    this.bubble.update();
+    
     this.lastContactWater = this.contactWater;
     this.scene.updateMatrixWorld();
   }
@@ -380,6 +412,14 @@ class WaterParticleEffect {
     this.movingRipple.update = (timestamp) => this.updateMovingRipple(timestamp);
     this.scene.add(this.movingRipple);
     this.mirrorInvisibleList.push(this.movingRipple);
+  }
+
+  initBubble() {
+    this.bubble = getBubble();
+    this.bubble.material.uniforms.bubbleTexture1.value = this.textures.bubbleTexture;
+    this.bubble.update = () => this.updateBubble();
+    this.scene.add(this.bubble);
+    this.mirrorInvisibleList.push(this.bubble);
   }
 
   //########################################################## update function of particle mesh #####################################################
@@ -558,6 +598,45 @@ class WaterParticleEffect {
       positionsAttribute.needsUpdate = true;
       this.movingRipple.material.uniforms.uTime.value = timestamp / 1000;
     }  
+  }
+
+  updateBubble() {
+    if (this.bubble) {
+      const particleCount = this.bubble.info.particleCount;
+      const offsetAttribute = this.bubble.geometry.getAttribute('offset');
+      const positionsAttribute = this.bubble.geometry.getAttribute('positions');
+      const scalesAttribute = this.bubble.geometry.getAttribute('scales');
+      for (let i = 0; i < particleCount; i++) {
+        if (scalesAttribute.getX(i) > 0) {
+          if (positionsAttribute.getY(i) >= this.waterSurfaceHeight) {
+            this.bubble.info.velocity[i].y = 0;
+          }
+          positionsAttribute.setXYZ(  
+            i, 
+            positionsAttribute.getX(i) + this.bubble.info.velocity[i].x,
+            positionsAttribute.getY(i) + this.bubble.info.velocity[i].y,
+            positionsAttribute.getZ(i) + this.bubble.info.velocity[i].z
+          );
+
+          // handle texture offset
+          this.bubble.info.livingTime[i] ++;
+          if (this.bubble.info.livingTime[i] % 2 === 0)
+            this.bubble.info.offset[i] ++;
+          if (this.bubble.info.offset[i] >= 30)
+            this.bubble.info.offset[i] = 0;
+          offsetAttribute.setXY(i, (5 / 6) - Math.floor(this.bubble.info.offset[i] / 6) * (1. / 6.), Math.floor(this.bubble.info.offset[i] % 5) * 0.2);
+
+          scalesAttribute.setX(i, scalesAttribute.getX(i) + 0.01);
+          if (this.bubble.info.livingTime[i] > this.bubble.info.maxLife[i]) {
+            scalesAttribute.setX(i, 0);
+          }
+        }
+      }
+      positionsAttribute.needsUpdate = true;
+      scalesAttribute.needsUpdate = true;
+      offsetAttribute.needsUpdate = true;
+      this.bubble.material.uniforms.cameraBillboardQuaternion.value.copy(this.camera.quaternion);
+    }
   }
 }
 
