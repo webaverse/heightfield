@@ -126,7 +126,7 @@ export const getButterflies = (particleCount, player) => {
       butterfly.lookAt(butterfly.position.clone().add(v2));
       butterfly.position.add(v2);
 
-      if (butterfly.position.distanceTo(player.position) > maxButterflyDistance * 5) {
+      if (butterfly.position.distanceTo(player.position) > maxButterflyDistance * 5 && player.characterPhysics.grounded) {
         resetPosition(butterfly);
       }
       if (butterfly.position.distanceTo(butterfly.destination) < 1) {

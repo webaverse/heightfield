@@ -228,7 +228,10 @@ export const getLeaf = (particleCount, player) => {
       const rotSpeed = info.rotDir[i] * (1. - currentSpeed) * 0.1;
       rotationYAttribute.setX(i, rotationYAttribute.getX(i) + rotSpeed);
 
-      if (info.position[i].distanceTo(info.destination[i]) < 1 || info.position[i].distanceTo(player.position) > resetDistanceRadius) {
+      if (
+        player.characterPhysics.grounded
+        && (info.position[i].distanceTo(info.destination[i]) < 1 || info.position[i].distanceTo(player.position) > resetDistanceRadius)
+      ) {
         setLeafInfo(i);
       }
     }

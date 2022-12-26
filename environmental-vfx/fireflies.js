@@ -151,7 +151,7 @@ export const getFireflies = (particleCount, player, camera) => {
     const positionsAttribute = fireFlies.geometry.getAttribute('positions');
     
     for(let i = 0; i < particleCount; i++){
-      if (scalesAttribute.getX(i) <= 0.) {
+      if (scalesAttribute.getX(i) <= 0. && player.characterPhysics.grounded) {
         info.velocity[i].set(
           Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5
         ).divideScalar(100);
