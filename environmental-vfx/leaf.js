@@ -128,8 +128,13 @@ export const getLeaf = (particleCount, player) => {
       #define PI 3.1415926
 
       void main() {
+        float mid = 0.5;
+        vec2 rotated = vec2(
+          cos(mod(vTextureRotation, PI * 2.)) * (vUv.x - mid) - sin(mod(vTextureRotation, PI * 2.)) * (vUv.y - mid) + mid,
+          cos(mod(vTextureRotation, PI * 2.)) * (vUv.y - mid) + sin(mod(vTextureRotation, PI * 2.)) * (vUv.x - mid) + mid
+        );
         
-        vec4 leaf = texture2D(leaftexture, vUv);    
+        vec4 leaf = texture2D(leaftexture, rotated);    
         gl_FragColor = leaf;
         
         ${THREE.ShaderChunk.logdepthbuf_fragment}
@@ -227,7 +232,7 @@ export const getLeaf = (particleCount, player) => {
       currentSpeed *= 20;
       const rotSpeed = info.rotDir[i] * (1. - currentSpeed) * 0.1;
       rotationYAttribute.setX(i, rotationYAttribute.getX(i) + rotSpeed);
-
+      textureRotationAttribute.setX(i, rotationYAttribute.getX(i) + rotSpeed);
       if (
         player.characterPhysics.grounded
         && (info.position[i].distanceTo(info.destination[i]) < 1 || info.position[i].distanceTo(player.position) > resetDistanceRadius)
