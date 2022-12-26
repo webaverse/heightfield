@@ -100,10 +100,10 @@ const _createLiquidMaterial = () => {
       void setOcean (inout vec3 normal, inout vec3 pos) {
         // set wave here, now using 4 waves for ocean
         // 1.dirX  2.dirZ  3.steepness  4.waveLength
-        vec4 waveA = vec4(1.0, 1.0, 0.05, 30.);
-        vec4 waveB = vec4(1.0, 0.6, 0.05, 15.);
-        vec4 waveC = vec4(1.0, 1.3, 0.05, 8.);
-        vec4 waveD = vec4(-0.3, -0.7, 0.05, 1.75);
+        vec4 waveA = vec4(1.0, 1.0, 0.075, 30.);
+        vec4 waveB = vec4(1.0, 0.6, 0.075, 15.);
+        vec4 waveC = vec4(1.0, 1.3, 0.075, 8.);
+        vec4 waveD = vec4(0.3, -0.7, 0.075, 1.75);
 
         vec3 tangent = vec3(1.0, 0.0, 0.0);
         vec3 binormal = vec3(0.0, 0.0, 1.0);
@@ -262,7 +262,7 @@ const _createLiquidMaterial = () => {
     `,
     side: THREE.DoubleSide,
     transparent: true,
-    // depthWrite: false,
+    depthWrite: false,
     // blending: THREE.AdditiveBlending,
   });
   return material;

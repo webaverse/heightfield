@@ -7,9 +7,13 @@ import {
   MAX_WORLD_HEIGHT,
 } from "../constants.js";
 import LiquidPackage from '../meshes/liquid-package.js';
-import {liquidTextureUrlSpecs} from '../assets.js';
+import {liquidTextureUrlSpecs, liquidGlbUrlSpecs} from '../assets.js';
 import _createLiquidMaterial from './liquid-material.js';
 import WaterRenderer from '../liquid-effect/water-render.js';
+
+import WaterParticleEffect from '../liquid-effect/particle.js';
+
+
 
 const {useProcGenManager, useGeometryBuffering, useLocalPlayer, useInternals} = metaversefile;
 const {BufferedMesh, GeometryAllocator} = useGeometryBuffering();
@@ -29,6 +33,8 @@ const localVector = new THREE.Vector3();
 // constants
 const SHADER_TEXTURE_PATHS = liquidTextureUrlSpecs.shaderTexturePath;
 const CUBEMAP_PATHS = liquidTextureUrlSpecs.cubeMapPath;
+const PARTICLE_TEXTURE_PATHS = liquidTextureUrlSpecs.particleTexturePath;
+const PARTICLE_MODEL_PATHS = liquidGlbUrlSpecs.particleGLBPath;
 
 const SWIM_HEIGHT_THRESHOLD = 0.75;
 const SWIM_ONSURFACE_RANGE = 0.05;
@@ -112,6 +118,7 @@ export class LiquidMesh extends BufferedMesh {
     this.swimDamping = 1;
 
     this.depthInvisibleList = [];
+    this.mirrorInvisibleList = [];
   }
 
   addChunk(chunk, chunkResult) {
@@ -437,6 +444,14 @@ export class LiquidMesh extends BufferedMesh {
       }
     }
   }
+  
+  updateParticle(timestamp, contactWater, localPlayer, waterSurfaceHeight) {
+    this.particleEffect.contactWater = contactWater;
+    this.particleEffect.player = localPlayer;
+    this.particleEffect.waterSurfaceHeight = waterSurfaceHeight;
+    this.particleEffect.update(timestamp);
+  };
+
   update(timestamp) {
     const localPlayer = useLocalPlayer();
     const lastUpdateCoordKey = getHashKey(
@@ -446,9 +461,10 @@ export class LiquidMesh extends BufferedMesh {
     const currentChunkPhysicObject =
       this.chunkPhysicObjcetMap.get(lastUpdateCoordKey); // use lodTracker.lastUpdateCoord as a key to check which chunk player currently at
 
+    let contactWater = false;
     // handel water physic and swimming action if we get the physicObject of the current chunk
     if (currentChunkPhysicObject) {
-      const contactWater = this.checkWaterContact(
+      contactWater = this.checkWaterContact(
         currentChunkPhysicObject,
         localPlayer,
         WATER_HEIGHT,
@@ -461,12 +477,14 @@ export class LiquidMesh extends BufferedMesh {
     this.material.uniforms.uTime.value = timestamp / 1000;
     this.material.uniforms.playerPos.value.copy(localPlayer.position);
     this.material.uniforms.cameraInWater.value = this.underWater;
+
+    this.updateParticle(timestamp, contactWater, localPlayer, WATER_HEIGHT);
   }
   setPackage(pkg) {
     const shaderTextures = pkg.textures['shaderTextures'];
     const cubeMap = pkg.textures['textureCube'];
   
-    this.waterRenderer = new WaterRenderer(renderer, scene, camera, this);
+    this.waterRenderer = new WaterRenderer(renderer, scene, camera, this, this.mirrorInvisibleList);
     
     // depth
     this.material.uniforms.tMask.value = this.waterRenderer.depthRenderTarget.depthTexture;
@@ -489,9 +507,16 @@ export class LiquidMesh extends BufferedMesh {
     //river
     this.material.uniforms.waterNormalTexture.value = shaderTextures.waterNormalTexture;
     this.material.uniforms.cubeMap.value = cubeMap;
+
+
+    const particleTextures = pkg.textures['particleTextures'];
+    const particleModels = pkg.models['particleModels'];
+    this.particleEffect = new WaterParticleEffect(particleTextures, particleModels, this.mirrorInvisibleList);
   }
   async waitForLoad() {
     const paths = {
+      particleTexturePath: PARTICLE_TEXTURE_PATHS,
+      particleGLBPath: PARTICLE_MODEL_PATHS,
       shaderTexturePath: SHADER_TEXTURE_PATHS,
       cubeMapPath: CUBEMAP_PATHS,
     };
