@@ -202,7 +202,7 @@ class WaterParticleEffect {
       
       // if speed > 0.3, play broken ripple
       if (this.currentSpeed > 0.3) {
-        brokenAttribute.setX(this.movingRipple.info.currentBrokenRipple, 0.1 + 0.3 * Math.random());
+        brokenAttribute.setX(this.movingRipple.info.currentBrokenRipple, 0.2 + 0.3 * Math.random());
         scalesAttribute.setX(this.movingRipple.info.currentBrokenRipple, 1.1 + Math.random() * 1.5);
         positionsAttribute.setXYZ(
           this.movingRipple.info.currentBrokenRipple,

@@ -243,12 +243,12 @@ const _createLiquidMaterial = () => {
             }
             case 1:
             {
-              gl_FragColor = vec4(1.0, 0.0, 0.0, 0.0);
+              ${riverShader}
               break;
             }
             case 3:
             {
-              gl_FragColor = vec4(1.0, 0.0, 0.0, 0.0);
+              ${waterfallShader}
               break;
             }
             case 2:
