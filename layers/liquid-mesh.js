@@ -487,16 +487,21 @@ export class LiquidMesh extends BufferedMesh {
 
     let contactWater = false;
     // handel water physic and swimming action if we get the physicObject of the current chunk
-    if (currentChunkPhysicObject) {
-      contactWater = this.checkWaterContact(
-        currentChunkPhysicObject,
-        localPlayer,
-        WATER_HEIGHT,
-      ); // check whether player contact the water
+    // if (currentChunkPhysicObject) {
+    //   contactWater = this.checkWaterContact(
+    //     currentChunkPhysicObject,
+    //     localPlayer,
+    //     WATER_HEIGHT,
+    //   ); // check whether player contact the water
 
-      // handle swimming action
-      this.handleSwimAction(contactWater, localPlayer, WATER_HEIGHT);
-    }
+    //   // handle swimming action
+    //   this.handleSwimAction(contactWater, localPlayer, WATER_HEIGHT);
+    // }
+
+    const height = localPlayer.avatar.height;
+    contactWater = localPlayer.position.y - height <= WATER_HEIGHT;
+    this.handleSwimAction(contactWater, localPlayer, WATER_HEIGHT);
+    
     this.underWater = contactWater && camera.position.y < WATER_HEIGHT;
     this.material.uniforms.uTime.value = timestamp / 1000;
     this.material.uniforms.playerPos.value.copy(localPlayer.position);
