@@ -7,14 +7,20 @@ import {
   MAX_WORLD_HEIGHT,
 } from "../constants.js";
 import LiquidPackage from '../meshes/liquid-package.js';
-import {liquidTextureUrlSpecs} from '../assets.js';
+import {liquidTextureUrlSpecs, liquidGlbUrlSpecs} from '../assets.js';
 import _createLiquidMaterial from './liquid-material.js';
 import WaterRenderer from '../liquid-effect/water-render.js';
 
-const {useProcGenManager, useGeometryBuffering, useLocalPlayer, useInternals} = metaversefile;
+import WaterParticleEffect from '../liquid-effect/particle.js';
+
+
+
+const {useProcGenManager, useGeometryBuffering, useLocalPlayer, useInternals, useRenderSettings} = metaversefile;
 const {BufferedMesh, GeometryAllocator} = useGeometryBuffering();
 const procGenManager = useProcGenManager();
 const {renderer, camera, scene} = useInternals();
+const renderSettings = useRenderSettings();
+
 //
 const fakeMaterial = new THREE.MeshBasicMaterial({
   color: 0xffffff,
@@ -29,6 +35,8 @@ const localVector = new THREE.Vector3();
 // constants
 const SHADER_TEXTURE_PATHS = liquidTextureUrlSpecs.shaderTexturePath;
 const CUBEMAP_PATHS = liquidTextureUrlSpecs.cubeMapPath;
+const PARTICLE_TEXTURE_PATHS = liquidTextureUrlSpecs.particleTexturePath;
+const PARTICLE_MODEL_PATHS = liquidGlbUrlSpecs.particleGLBPath;
 
 const SWIM_HEIGHT_THRESHOLD = 0.75;
 const SWIM_ONSURFACE_RANGE = 0.05;
@@ -112,6 +120,7 @@ export class LiquidMesh extends BufferedMesh {
     this.swimDamping = 1;
 
     this.depthInvisibleList = [];
+    this.mirrorInvisibleList = [];
   }
 
   addChunk(chunk, chunkResult) {
@@ -437,6 +446,36 @@ export class LiquidMesh extends BufferedMesh {
       }
     }
   }
+  
+  updateParticle(timestamp, contactWater, localPlayer, waterSurfaceHeight) {
+    this.particleEffect.contactWater = contactWater;
+    this.particleEffect.player = localPlayer;
+    this.particleEffect.waterSurfaceHeight = waterSurfaceHeight;
+    this.particleEffect.update(timestamp);
+  };
+
+  updateUnderWater(underWater) {
+    if(renderSettings.findRenderSettings(scene)){
+      const d = underWater ? 0.001 : 0; 
+      renderSettings.findRenderSettings(scene).fog.color.r = 4 / 255;
+      renderSettings.findRenderSettings(scene).fog.color.g = 41.5 / 255;
+      renderSettings.findRenderSettings(scene).fog.color.b = 44.5 / 255;
+      renderSettings.findRenderSettings(scene).fog.density = d;
+    }
+    if (underWater) {
+      if (!this.cameraHasMask) {
+        camera.add(this.underWaterMask);
+        this.cameraHasMask = true;
+      } 
+    }
+    else {
+      if (this.cameraHasMask) {
+        camera.remove(this.underWaterMask);
+        this.cameraHasMask = false;
+      }
+    }
+  }
+
   update(timestamp) {
     const localPlayer = useLocalPlayer();
     const lastUpdateCoordKey = getHashKey(
@@ -446,27 +485,38 @@ export class LiquidMesh extends BufferedMesh {
     const currentChunkPhysicObject =
       this.chunkPhysicObjcetMap.get(lastUpdateCoordKey); // use lodTracker.lastUpdateCoord as a key to check which chunk player currently at
 
+    let contactWater = false;
     // handel water physic and swimming action if we get the physicObject of the current chunk
-    if (currentChunkPhysicObject) {
-      const contactWater = this.checkWaterContact(
-        currentChunkPhysicObject,
-        localPlayer,
-        WATER_HEIGHT,
-      ); // check whether player contact the water
+    // if (currentChunkPhysicObject) {
+    //   contactWater = this.checkWaterContact(
+    //     currentChunkPhysicObject,
+    //     localPlayer,
+    //     WATER_HEIGHT,
+    //   ); // check whether player contact the water
 
-      // handle swimming action
-      this.handleSwimAction(contactWater, localPlayer, WATER_HEIGHT);
-    }
-    this.underWater = camera.position.y < WATER_HEIGHT;
+    //   // handle swimming action
+    //   this.handleSwimAction(contactWater, localPlayer, WATER_HEIGHT);
+    // }
+
+    const height = localPlayer.avatar.height;
+    contactWater = localPlayer.position.y - height <= WATER_HEIGHT;
+    this.handleSwimAction(contactWater, localPlayer, WATER_HEIGHT);
+    
+    this.underWater = contactWater && camera.position.y < WATER_HEIGHT;
     this.material.uniforms.uTime.value = timestamp / 1000;
     this.material.uniforms.playerPos.value.copy(localPlayer.position);
     this.material.uniforms.cameraInWater.value = this.underWater;
+
+    this.updateParticle(timestamp, contactWater, localPlayer, WATER_HEIGHT);
+
+    // underWater
+    this.updateUnderWater(this.underWater);
   }
   setPackage(pkg) {
     const shaderTextures = pkg.textures['shaderTextures'];
     const cubeMap = pkg.textures['textureCube'];
   
-    this.waterRenderer = new WaterRenderer(renderer, scene, camera, this);
+    this.waterRenderer = new WaterRenderer(renderer, scene, camera, this, this.mirrorInvisibleList);
     
     // depth
     this.material.uniforms.tMask.value = this.waterRenderer.depthRenderTarget.depthTexture;
@@ -489,9 +539,24 @@ export class LiquidMesh extends BufferedMesh {
     //river
     this.material.uniforms.waterNormalTexture.value = shaderTextures.waterNormalTexture;
     this.material.uniforms.cubeMap.value = cubeMap;
+
+    // particle
+    const particleTextures = pkg.textures['particleTextures'];
+    const particleModels = pkg.models['particleModels'];
+    this.particleEffect = new WaterParticleEffect(particleTextures, particleModels, this.mirrorInvisibleList);
+
+    // underwater mask
+    // underwater mask
+    const geometry = new THREE.PlaneGeometry( 2, 2 );
+    const material = new THREE.MeshBasicMaterial( {color: 0x097F89, side: THREE.DoubleSide, transparent: true, opacity: 0.5, depthWrite: false} );
+    this.underWaterMask = new THREE.Mesh(geometry, material);
+    this.underWaterMask.position.set(0, 0, -0.2);
+    this.cameraHasMask = false;
   }
   async waitForLoad() {
     const paths = {
+      particleTexturePath: PARTICLE_TEXTURE_PATHS,
+      particleGLBPath: PARTICLE_MODEL_PATHS,
       shaderTexturePath: SHADER_TEXTURE_PATHS,
       cubeMapPath: CUBEMAP_PATHS,
     };

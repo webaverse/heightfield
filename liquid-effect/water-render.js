@@ -23,11 +23,12 @@ INITIAL_TEXTURE_MATRIX.set(
 );
 
 class WaterRenderer {
-  constructor(renderer, scene, camera, water) {
+  constructor(renderer, scene, camera, water, mirrorInvisibleList) {
     this.renderer = renderer;
     this.scene = scene;
     this.camera = camera;
     this.water = water;
+    this.mirrorInvisibleList = mirrorInvisibleList;
 
     // for depth
     const pixelRatio = this.renderer.getPixelRatio();
@@ -218,7 +219,9 @@ class WaterRenderer {
     if (localPlayer.avatar) {
       localPlayer.avatar.app.visible = false;
     }
-
+    for (const o of this.mirrorInvisibleList) {
+      o.visible = false;
+    }
     this.water.visible = false;
 
     const currentRenderTarget = renderer.getRenderTarget();
@@ -251,7 +254,9 @@ class WaterRenderer {
     if (localPlayer.avatar) {
       localPlayer.avatar.app.visible = true;
     }
-
+    for (const o of this.mirrorInvisibleList) {
+      o.visible = true;
+    }
     this.water.visible = true;
   }
 
@@ -339,6 +344,9 @@ class WaterRenderer {
     projectionMatrix.elements[10] = this.clipVector.z + 1.0 - 0.00001;
     projectionMatrix.elements[14] = this.clipVector.w;
 
+    for (const o of this.mirrorInvisibleList) {
+      o.visible = false;
+    }
     this.water.visible = false;
 
     const currentRenderTarget = renderer.getRenderTarget();
@@ -363,7 +371,9 @@ class WaterRenderer {
     if (viewport !== undefined) {
       renderer.state.viewport(viewport);
     }
-
+    for (const o of this.mirrorInvisibleList) {
+      o.visible = true;
+    }
     this.water.visible = true;
   }
 }

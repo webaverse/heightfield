@@ -15,6 +15,8 @@ import {
 } from "./meshes/terrain-objects-mesh.js";
 import {_addNoLightingShaderChunk} from "./utils/utils.js";
 
+import { EnvironmentalVfx } from "./environmental-vfx/index.js";
+
 const {
   useApp,
   useFrame,
@@ -56,6 +58,19 @@ export default e => {
   // locals
 
   let frameCb = null;
+  let envVFX = false;
+  let environmentalVfx = null;
+  for (const component of app.components) {
+    switch (component.key) {
+      case 'envVFX': {
+        envVFX = component.value.enable;
+        break;
+      }
+      default: {
+        break;
+      }
+    }
+  }
 
   // initialization
 
@@ -133,6 +148,8 @@ export default e => {
       app.add(terrainObjects);
       terrainObjects.updateMatrixWorld();
 
+      
+      
       const liquidMesh = new LiquidMesh({
         instance,
         gpuTaskManager,
@@ -142,6 +159,11 @@ export default e => {
       app.add(liquidMesh);
       liquidMesh.depthInvisibleList.push(terrainObjects);
       liquidMesh.updateMatrixWorld();
+
+      if (envVFX) {
+        environmentalVfx = new EnvironmentalVfx(app);
+      }
+      
       
       // genration events handling
       lodTracker.onChunkAdd(async chunk => {
@@ -291,6 +313,7 @@ export default e => {
           );
         };
         _updateLiquidMesh();
+        environmentalVfx && environmentalVfx.update(timestamp);
 
         gpuTaskManager.update();
       };
