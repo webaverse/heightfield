@@ -426,7 +426,7 @@ const movingRippleFragment = `\
       else {
         gl_FragColor = voronoiNoise;
         gl_FragColor.rgb *= 3.;
-        gl_FragColor.a = 0.5;
+        gl_FragColor.a = 0.25;
       }
       float broken = abs(sin(1.0 - vBroken)) - noise2.g;
       if (broken < 0.0001) discard;
