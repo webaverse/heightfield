@@ -251,7 +251,7 @@ export const _createTreeSingleMaterial = () => {
         vec3 newPosition = position;
         if (vColor.r > 0.1) {
           // vec3 offset = uv.x * sin(uv.y + uTime) * vec3(1., 0., 1.);
-          vec4 tempPos = modelMatrix * vec4(pos, 1.0);
+          vec4 tempPos = modelMatrix * vec4(newPosition, 1.0);
           float uvScale = 1.0;
           float speed = 0.001;
           vec2 texUv = vec2(
@@ -260,7 +260,7 @@ export const _createTreeSingleMaterial = () => {
           );
           vec4 noise = texture2D(noiseTexture, texUv);
           float noiseScale = 1.0;
-          pos += noise.r * vec3(noiseScale, 0., noiseScale);
+          newPosition += noise.r * vec3(noiseScale, 0., noiseScale);
         }
   
         vec4 modelPosition = modelMatrix * vec4(newPosition, 1.0);
