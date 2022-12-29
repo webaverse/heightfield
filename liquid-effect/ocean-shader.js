@@ -66,19 +66,23 @@ export const oceanShader =  /* glsl */`
 		waterColor = waterColor * ((vec4(1.0) - foamLineCutOut)) + foamT;
 
 		//################################## handle mirror ##################################
-		vec3 surfaceNormal = normalize(vNormal * vec3(1.5, 1.0, 1.5));
+		float noiseNormalScale = 0.9;
+		vec3 noiseNormal = normalize(getNoise(vWorldPosition.xz * 5., uTime * 0.5)).rgb * noiseNormalScale;
+		vec3 surfaceNormal = normalize((vNormal + noiseNormal) * vec3(1.5, 1.0, 1.5));
+
 		vec3 worldToEye = eye - vWorldPosition.xyz;
-		float worldToEyeDistance = length(worldToEye);
-		float distortionScale = 3.;
-		vec2 distortion = surfaceNormal.xz * (0.001 + 1.0 / worldToEyeDistance) * distortionScale;
+		float distance = length(worldToEye);
+		float distortionScaleDepth = getDepthFade(fragmentLinearEyeDepth, linearEyeDepth, 200., 1.5);
+		float distortionScale = 2. * (1. - distortionScaleDepth);
+		vec2 distortion = surfaceNormal.xz * (0.001 + 0.3 / distance) * distortionScale;
 		vec3 reflectionSample = vec3(texture2D(mirror, vUv.xy / vUv.w + distortion));
 		float theta = max(dot(eyePosition, surfaceNormal), 0.0);
 		float rf0 = 0.1;
 		float reflectance = rf0 + (1.0 - rf0) * pow((1.0 - theta), 5.0);
 		float reflectanceScale = 5.;
 		vec3 col1 = reflectionSample * 0.1;
-		vec3 col2 = reflectionSample * 0.4 * clamp(1. - saturate(worldToEyeDistance / 150.), 0.5, 1.0);
-		vec3 albedo = mix(col1, col2, saturate(reflectance * reflectanceScale));
+		vec3 col2 = reflectionSample * 0.4;
+		vec3 albedo = mix(col1, col2, reflectance * reflectanceScale);
 		gl_FragColor = vec4(albedo, waterColor.a);
 		gl_FragColor.rgb += waterColor.rgb;
 	}
@@ -86,18 +90,21 @@ export const oceanShader =  /* glsl */`
 		//################################## refraction ##################################
 		vec3 waterColor = vec3(0.126, 0.47628, 0.6048);
 		
-		vec3 surfaceNormal = normalize(vNormal * vec3(1.5, 1.0, 1.5));
+		float noiseNormalScale = 0.6;
+		vec3 noiseNormal = normalize(getNoise(vWorldPosition.xz * 5., uTime * 0.5)).rgb * noiseNormalScale;
+		vec3 surfaceNormal = normalize((vNormal + noiseNormal) * vec3(1.5, 1.0, 1.5));
+
 		vec3 worldToEye = eye - vWorldPosition.xyz;
-		float worldToEyeDistance = length(worldToEye);
+		float distance = length(worldToEye);
 		float distortionScale = 0.1;
-		vec2 distortion = surfaceNormal.xz * (0.001 + 1.0 / worldToEyeDistance) * distortionScale;
+		vec2 distortion = surfaceNormal.xz * (0.001 + 1.0 / distance) * distortionScale;
 		vec3 reflectionSample = vec3(texture2D(refractionTexture, vUv.xy / vUv.w + distortion));
 		float theta = max(dot(eyePosition, surfaceNormal), 0.0);
 		float rf0 = 0.1;
 		float reflectance = rf0 + (1.0 - rf0) * pow((1.0 - theta), 5.0);
 		float reflectanceScale = 5.;
 		vec3 col1 = reflectionSample * 0.1;
-		vec3 col2 = reflectionSample * 0.4 * clamp(1. - saturate(worldToEyeDistance / 150.), 0.5, 1.0);
+		vec3 col2 = reflectionSample * 0.4;
 		vec3 albedo = mix(col1, col2, reflectance * reflectanceScale);
 		gl_FragColor = vec4(albedo, 1.0);
 		gl_FragColor.rgb += waterColor.rgb;
