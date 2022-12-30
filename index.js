@@ -15,7 +15,7 @@ import {
 } from "./meshes/terrain-objects-mesh.js";
 import {_addNoLightingShaderChunk} from "./utils/utils.js";
 
-import { EnvironmentalVfx } from "./environmental-vfx/index.js";
+import { EnvironmentalFx } from "./environmental-fx/index.js";
 
 const {
   useApp,
@@ -59,7 +59,7 @@ export default e => {
 
   let frameCb = null;
   let envVFX = false;
-  let environmentalVfx = null;
+  let environmentalFx = null;
   for (const component of app.components) {
     switch (component.key) {
       case 'envVFX': {
@@ -161,7 +161,7 @@ export default e => {
       liquidMesh.updateMatrixWorld();
 
       if (envVFX) {
-        environmentalVfx = new EnvironmentalVfx(app);
+        environmentalFx = new EnvironmentalFx(app);
       }
       
       
@@ -313,7 +313,7 @@ export default e => {
           );
         };
         _updateLiquidMesh();
-        environmentalVfx && environmentalVfx.update(timestamp);
+        environmentalFx && environmentalFx.update(timestamp);
 
         gpuTaskManager.update();
       };
