@@ -3,8 +3,8 @@ import * as THREE from 'three';
 const baseUrl = import.meta.url.replace(/(\/)[^\/\/]*$/, '$1'); 
 const textureLoader = new THREE.TextureLoader();
 
-const leaftexture = textureLoader.load(`${baseUrl}environmental-vfx/textures/Leaf10.png`);
-const noisetexture = textureLoader.load(`${baseUrl}environmental-vfx/textures/Noise28.png`);
+const leaftexture = textureLoader.load(`${baseUrl}environmental-fx/textures/Leaf10.png`);
+const noisetexture = textureLoader.load(`${baseUrl}environmental-fx/textures/Noise28.png`);
 noisetexture.wrapS = noisetexture.wrapT = THREE.RepeatWrapping;
 
 export const getLeaf = (particleCount, player) => {

@@ -3,8 +3,8 @@ import * as THREE from 'three';
 const baseUrl = import.meta.url.replace(/(\/)[^\/\/]*$/, '$1'); 
 const textureLoader = new THREE.TextureLoader();
 
-const bodyTexture = textureLoader.load(`${baseUrl}environmental-vfx/textures/body.png`);
-const wingTexture = textureLoader.load(`${baseUrl}environmental-vfx/textures/butterfly-wing3.png`);
+const bodyTexture = textureLoader.load(`${baseUrl}environmental-fx/textures/body.png`);
+const wingTexture = textureLoader.load(`${baseUrl}environmental-fx/textures/butterfly-wing3.png`);
 
 export const getButterflies = (particleCount, player) => {
 

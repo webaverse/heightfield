@@ -3,7 +3,7 @@ import * as THREE from 'three';
 const baseUrl = import.meta.url.replace(/(\/)[^\/\/]*$/, '$1'); 
 const textureLoader = new THREE.TextureLoader();
 
-const glowSpheretexture = textureLoader.load(`${baseUrl}environmental-vfx/textures/glowSphere3.png`);
+const glowSpheretexture = textureLoader.load(`${baseUrl}environmental-fx/textures/glowSphere3.png`);
 
 export const getFireflies = (particleCount, player, camera) => {
   
@@ -143,9 +143,7 @@ export const getFireflies = (particleCount, player, camera) => {
   }
 
   const maxFireflyDistance = 50;
-  let azimuth = 0.4;
-  fireFlies.update = (timestamp) => {
-    azimuth = (0.05 + (Date.now() / 5000) * 0.1) % 1;
+  fireFlies.update = (timestamp, day) => {
     const scalesAttribute = fireFlies.geometry.getAttribute('scales');
     const opacityAttribute = fireFlies.geometry.getAttribute('opacity');
     const positionsAttribute = fireFlies.geometry.getAttribute('positions');
@@ -176,7 +174,7 @@ export const getFireflies = (particleCount, player, camera) => {
     scalesAttribute.needsUpdate = true;
     positionsAttribute.needsUpdate = true;
     opacityAttribute.needsUpdate = true;
-    if (azimuth < 0.5) {
+    if (day) {
       material.uniforms.sun.value = 1;
     } else {
       material.uniforms.sun.value = 0;
