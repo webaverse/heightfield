@@ -88,10 +88,10 @@ export const oceanShader =  /* glsl */`
 		lightDiffuse *= lightDiffuseIntensity;
 		
 
-		vec3 reflection = normalize( reflect( -lightDir, vNormal ) );
+		vec3 reflection = normalize( reflect( -lightDir, noiseNormal ) );
 		float lightSpecular = max( 0.0, dot( eyeDirection, reflection ) );
 		float specularShinny = 20.;
-		float lightSpecularIntensity = 0.025;
+		float lightSpecularIntensity = 0.05;
 		lightSpecular = pow(lightSpecular, specularShinny);
 		lightSpecular *= lightSpecularIntensity;
 
