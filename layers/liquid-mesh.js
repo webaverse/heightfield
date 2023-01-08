@@ -15,11 +15,12 @@ import WaterParticleEffect from '../liquid-effect/particle.js';
 
 
 
-const {useProcGenManager, useGeometryBuffering, useLocalPlayer, useInternals, useRenderSettings} = metaversefile;
+const {useProcGenManager, useGeometryBuffering, useLocalPlayer, useInternals, useRenderSettings, useLightsManager} = metaversefile;
 const {BufferedMesh, GeometryAllocator} = useGeometryBuffering();
 const procGenManager = useProcGenManager();
 const {renderer, camera, scene} = useInternals();
 const renderSettings = useRenderSettings();
+const lightsManager = useLightsManager();
 
 //
 const fakeMaterial = new THREE.MeshBasicMaterial({
@@ -497,6 +498,14 @@ export class LiquidMesh extends BufferedMesh {
     //   // handle swimming action
     //   this.handleSwimAction(contactWater, localPlayer, WATER_HEIGHT);
     // }
+    const sunMoonRotationRadius = 500;
+    for (const light of lightsManager.lights) {
+      if (light.isDirectionalLight) {
+        this.material.uniforms.lightPos.value.copy(light.position).multiplyScalar(sunMoonRotationRadius);
+        this.material.uniforms.lightIntensity.value = light.intensity;
+        break;
+      }
+    }
 
     const height = localPlayer.avatar.height;
     contactWater = localPlayer.position.y - height <= WATER_HEIGHT;
