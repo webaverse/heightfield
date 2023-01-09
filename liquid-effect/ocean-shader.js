@@ -84,9 +84,9 @@ export const oceanShader =  /* glsl */`
 		//################################## handle light ##################################
 		vec3 eyeDirection = normalize(eye - vWorldPosition);
 		vec3 lightDir = normalize(lightPos - vWorldPosition);
-		float lightDiffuse = max(0.0, dot(lightDir, noiseNormal));
-		float lightDiffuseIntensity = 0.025;
-		lightDiffuse *= lightDiffuseIntensity;
+		// float lightDiffuse = max(0.0, dot(lightDir, noiseNormal));
+		// float lightDiffuseIntensity = 0.025;
+		// lightDiffuse *= lightDiffuseIntensity;
 		
 
 		vec3 reflection = normalize( reflect( -lightDir, noiseNormal ) );
